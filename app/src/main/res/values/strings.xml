@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">CoverLock</string>
+    <string name="app_desc">Lock and Cover!</string>
+    <string name="srv_desc">Monitors proximity sensor for CoverLock</string>
+</resources>
