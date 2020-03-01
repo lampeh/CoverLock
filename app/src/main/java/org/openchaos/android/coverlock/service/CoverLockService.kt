@@ -12,22 +12,26 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Handler
 import android.os.IBinder
+import android.os.PowerManager
+import android.telephony.TelephonyManager
 import android.util.Log
-import org.openchaos.android.coverlock.MainActivity
 
-
-const val TAG = "CoverLockService"
 
 class CoverLockService : Service(), SensorEventListener {
+    private val TAG = this.javaClass.simpleName
+
+    private lateinit var devicePolicyManager: DevicePolicyManager
     private lateinit var sensorManager: SensorManager
     private lateinit var sensor: Sensor
-    private lateinit var devicePolicyManager: DevicePolicyManager
-    private lateinit var compName: ComponentName
+    private lateinit var adminComponentName: ComponentName
     private lateinit var handler: Handler
 
-    private var maxRange: Float = 0f
+    private var telephonyManager: TelephonyManager? = null
+    private var powerManager: PowerManager? = null
+
     private var threshold: Float = 0f
-    private var locked: Boolean = false
+    private var covered: Boolean = false
+
     private var id: Int = 0
 
     override fun onBind(intent: Intent): IBinder? {
@@ -39,9 +43,10 @@ class CoverLockService : Service(), SensorEventListener {
         Log.d(TAG, "onStart($flags, $startId)")
         super.onStartCommand(intent, flags, startId)
 
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        // TODO: cleanup
+        id = startId
         startForeground(23, Notification.Builder(this, NotificationChannel("23", getString(R.string.app_name), NotificationManager.IMPORTANCE_LOW).let {
-                nm?.createNotificationChannel(it)
+                (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)?.createNotificationChannel(it)
                 it.id })
             .setContentText(getString(R.string.srv_desc))
             .setSmallIcon(R.mipmap.ic_launcher)
@@ -49,16 +54,23 @@ class CoverLockService : Service(), SensorEventListener {
             .build()
         )
 
-        id = startId
+        // Optional components
+        telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager?
+        powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager?
 
-        devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        compName = ComponentName(this, LockAdmin::class.java)
+        try {
+            devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE)!! as DevicePolicyManager
+            sensorManager = getSystemService(Context.SENSOR_SERVICE)!! as SensorManager
+            sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)!!
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in required components", e)
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
-        sensorManager = getSystemService(Context.SENSOR_SERVICE)!! as SensorManager
-        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)!!
-        maxRange = sensor.maximumRange
-        threshold = maxRange / 2
+        adminComponentName = ComponentName(this, LockAdmin::class.java)
 
+        threshold = sensor.maximumRange / 2
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, 1000000)
 
         handler = Handler()
@@ -69,7 +81,9 @@ class CoverLockService : Service(), SensorEventListener {
     override fun onDestroy() {
         Log.d(TAG, "onDestroy($id)")
 
-        if (::sensorManager.isInitialized) {
+        // TODO: is this check necessary?
+
+        if (::sensorManager.isInitialized && ::sensor.isInitialized) {
             sensorManager.unregisterListener(this, sensor)
         }
 
@@ -85,16 +99,27 @@ class CoverLockService : Service(), SensorEventListener {
     override fun onSensorChanged(event: SensorEvent) {
         Log.d(TAG, "onSensorChanged()")
 
-        val oldState = locked
-        locked = (event.values[0] <= threshold)
+        val oldState = covered
+        covered = (event.values[0] <= threshold)
 
-        if (locked != oldState) {
-            Log.d(TAG, (if (locked) "" else "un") + "locked")
-            if (devicePolicyManager.isAdminActive(compName)) {
-                if (locked) {
-                    handler.postDelayed({ devicePolicyManager.lockNow() }, 2000)
+        if (covered != oldState) {
+            Log.d(TAG, (if (covered) "" else "un") + "covered")
+            if (devicePolicyManager.isAdminActive(adminComponentName)) {
+                if (covered) {
+                    handler.postDelayed({
+                        if (telephonyManager?.callState != TelephonyManager.CALL_STATE_OFFHOOK) {
+                            Log.d(TAG, "locking")
+                            devicePolicyManager.lockNow()
+                        }
+                    }, 2000)
                 } else {
                     handler.removeCallbacksAndMessages(null)
+/*
+                    powerManager?.newWakeLock((PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE), TAG)?.apply {
+                        acquire()
+                        release()
+                    }
+ */
                 }
             }
         }
@@ -103,8 +128,7 @@ class CoverLockService : Service(), SensorEventListener {
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
         Log.d(TAG, "onAccuracyChanged($accuracy)")
 
-        maxRange = sensor.maximumRange
-        threshold = maxRange / 2
-        Log.d(TAG, "maxRange = $maxRange, threshold = $threshold")
+        threshold = sensor.maximumRange / 2
+        Log.d(TAG, "maxRange = ${sensor.maximumRange}, threshold = $threshold")
     }
 }

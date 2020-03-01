@@ -6,5 +6,6 @@ Monitors proximity sensor and locks screen.
 TODO:
 -----
 - Configurable delay
-- Watch call state, don't lock while call in progress (optional)
 - Re-enable foreground service on boot
+- Un-register sensor listener on lock, re-register on screen on event
+- Wake up device if uncovered (optional)
