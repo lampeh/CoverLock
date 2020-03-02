@@ -76,7 +76,6 @@ class CoverLockService : Service(), SensorEventListener {
                 })
                 .setContentText(getString(R.string.srv_desc))
                 .setSmallIcon(R.mipmap.ic_launcher_round)
-                .setOngoing(true)
                 .setContentIntent(PendingIntent.getActivity(applicationContext, 0, Intent(applicationContext, MainActivity::class.java),0))
                 .build()
         )
