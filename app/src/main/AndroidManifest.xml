@@ -9,7 +9,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <uses-feature android:name="android.software.device_admin" android:required="true"/>
+    <uses-feature android:name="android.software.device_admin" android:required="true" />
+    <uses-feature android:name="android.hardware.sensor.proximity" android:required="true" />
 
     <application
         android:allowBackup="false"

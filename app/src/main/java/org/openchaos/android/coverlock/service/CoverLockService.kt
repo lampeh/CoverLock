@@ -29,7 +29,7 @@ class CoverLockService : Service(), SensorEventListener {
     private var powerManager: PowerManager? = null
     private var vibrator: Vibrator? = null
 
-    private var threshold: Float = 0f
+    private var threshold: Float = Float.NEGATIVE_INFINITY
     private var covered: Boolean = false
 
     override fun onBind(intent: Intent): IBinder? {
@@ -75,7 +75,7 @@ class CoverLockService : Service(), SensorEventListener {
                     it.id
                 })
                 .setContentText(getString(R.string.srv_desc))
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.mipmap.ic_launcher_round)
                 .setOngoing(true)
                 .setContentIntent(PendingIntent.getActivity(applicationContext, 0, Intent(applicationContext, MainActivity::class.java),0))
                 .build()
@@ -105,7 +105,7 @@ class CoverLockService : Service(), SensorEventListener {
         assert(event.sensor.type == Sensor.TYPE_PROXIMITY)
 
         val oldState = covered
-        covered = (event.values[0] <= threshold)
+        covered = (event.values[0] <= threshold) // TODO: consider NaN?
 
         if (covered != oldState) {
             Log.d(TAG, (if (covered) "" else "un") + "covered")
@@ -140,12 +140,16 @@ class CoverLockService : Service(), SensorEventListener {
         Log.d(TAG, "onAccuracyChanged($accuracy)")
         assert(sensor.type == Sensor.TYPE_PROXIMITY)
 
-        if (accuracy in arrayOf(SensorManager.SENSOR_STATUS_NO_CONTACT, SensorManager.SENSOR_STATUS_UNRELIABLE)) {
-            threshold = Float.NEGATIVE_INFINITY
-            Log.e(TAG, "sensor offline or unreliable")
-        } else {
-            threshold = sensor.maximumRange / 2
-            Log.d(TAG, "maxRange = ${sensor.maximumRange}, threshold = $threshold")
+        when (accuracy) {
+            SensorManager.SENSOR_STATUS_NO_CONTACT,
+            SensorManager.SENSOR_STATUS_UNRELIABLE -> {
+                threshold = Float.NEGATIVE_INFINITY
+                Log.i(TAG, "sensor offline or unreliable")
+            }
+            else -> {
+                threshold = sensor.maximumRange / 2
+                Log.d(TAG, "maxRange = ${sensor.maximumRange}, threshold = $threshold")
+            }
         }
     }
 }
