@@ -7,21 +7,33 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.widget.CompoundButton
+import android.view.View
 import android.widget.Switch
 import android.widget.Toast
 import org.openchaos.android.coverlock.service.CoverLockService
 import org.openchaos.android.coverlock.service.LockAdmin
 
 
-class MainActivity : Activity(), CompoundButton.OnCheckedChangeListener {
+class MainActivity : Activity() {
     private val TAG = this.javaClass.simpleName
 
     private lateinit var devicePolicyManager: DevicePolicyManager
     private lateinit var adminComponentName: ComponentName
     private lateinit var serviceIntent: Intent
-    private lateinit var enable: Switch
 
+
+    fun toggleAdmin(switch: View) {
+        Log.d(TAG, "toggleAdmin()")
+
+        if ((switch as Switch).isChecked) {
+            startActivityForResult(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponentName)
+            }, 23)
+        } else {
+            devicePolicyManager.removeActiveAdmin(adminComponentName)
+            stopService(serviceIntent)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "onCreate()")
@@ -33,35 +45,30 @@ class MainActivity : Activity(), CompoundButton.OnCheckedChangeListener {
         adminComponentName = ComponentName(this, LockAdmin::class.java)
         serviceIntent = Intent(this, CoverLockService::class.java)
 
-        enable = findViewById<Switch>(R.id.swEnable).also { it.setOnCheckedChangeListener(this) }
-    }
+        val adminActive = devicePolicyManager.isAdminActive(adminComponentName)
+        Log.i(TAG, "device admin ${if (adminActive) "en" else "dis"}abled")
 
-    override fun onResume() {
-        super.onResume()
-        enable.isChecked = (devicePolicyManager.isAdminActive(adminComponentName))
-    }
+        findViewById<Switch>(R.id.swEnable).apply {
+            isChecked = adminActive
+            isEnabled = true
+        }
 
-    override fun onCheckedChanged(buttonView: CompoundButton?, isChecked: Boolean) {
-        if (isChecked) {
-            startActivityForResult(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
-                putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponentName)
-            }, 23)
-        } else {
-            devicePolicyManager.removeActiveAdmin(adminComponentName);
-            stopService(serviceIntent)
+        if (adminActive) {
+            startService(serviceIntent)
         }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        Log.d(TAG, "onActivityResult($requestCode, $resultCode")
+
         if (requestCode != 23)
-                return
+            return
 
         if (resultCode == RESULT_OK) {
-            Toast.makeText(this, "You have enabled the Admin Device features", Toast.LENGTH_SHORT).show();
-            startService(Intent(this, CoverLockService::class.java))
+            Toast.makeText(this, R.string.adminEnabled, Toast.LENGTH_SHORT).show()
+            startService(serviceIntent)
         } else {
-            Toast.makeText(this, "Problem to enable the Admin Device features", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.adminError, Toast.LENGTH_SHORT).show()
         }
-        super.onActivityResult(requestCode, resultCode, data)
     }
 }

@@ -17,6 +17,7 @@ class BootReceiver : BroadcastReceiver() {
             return
         }
 
-        context.startService(Intent(context, CoverLockService::class.java))
+//        context.startService(Intent(context, CoverLockService::class.java))
+        context.startActivity(Intent(context, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
     }
 }
