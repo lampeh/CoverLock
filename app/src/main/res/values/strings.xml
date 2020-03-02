@@ -13,4 +13,5 @@
     <string name="prefActionWake">Wake when uncovered</string>
     <string name="prefWakeDelay">Wake delay</string>
     <string name="prefStartOnBoot">Start service on boot</string>
+    <string name="prefVibrate">Vibrate</string>
 </resources>

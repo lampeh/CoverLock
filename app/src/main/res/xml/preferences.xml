@@ -18,4 +18,10 @@
         app:iconSpaceReserved="false"
         app:key="StartOnBoot"
         app:title="@string/prefStartOnBoot" />
+
+    <SwitchPreference
+        android:defaultValue="true"
+        app:iconSpaceReserved="false"
+        app:key="Vibrate"
+        app:title="@string/prefVibrate" />
 </PreferenceScreen>

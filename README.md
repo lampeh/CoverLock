@@ -7,6 +7,7 @@ TODO:
 -----
 - Configurable delay and other preferences
 - Un-register sensor listener on lock, re-register on screen on event (optional, might save battery)
+- FULL_WAKE_LOCK is deprecated but ACQUIRE_CAUSES_WAKEUP does not work with PARTIAL_WAKE_LOCK. Ignore, Retry?
 
 
 Limitations:

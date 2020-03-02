@@ -12,6 +12,7 @@ import android.hardware.SensorManager
 import android.os.*
 import android.telephony.TelephonyManager
 import android.util.Log
+import androidx.preference.PreferenceManager
 import org.openchaos.android.coverlock.MainActivity
 import org.openchaos.android.coverlock.R
 
@@ -103,6 +104,8 @@ class CoverLockService : Service(), SensorEventListener {
         Log.d(TAG, "onSensorChanged()")
         assert(event.sensor.type == Sensor.TYPE_PROXIMITY)
 
+        val prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+
         val oldState = covered
         covered = (event.values[0] <= threshold) // TODO: consider NaN?
 
@@ -112,24 +115,28 @@ class CoverLockService : Service(), SensorEventListener {
             if (devicePolicyManager.isAdminActive(adminComponentName)) {
                 if (covered) {
                     handler.removeCallbacksAndMessages(null)
-                    handler.postDelayed({
-                        if (powerManager?.isInteractive != false && telephonyManager?.callState != TelephonyManager.CALL_STATE_OFFHOOK) {
-                            Log.d(TAG, "locking")
-                            devicePolicyManager.lockNow()
-                            vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
-                        }
-                    }, 2000)
+                    if (prefs.getBoolean("ActionLock", false)) {
+                        handler.postDelayed({
+                            if (powerManager?.isInteractive != false && telephonyManager?.callState != TelephonyManager.CALL_STATE_OFFHOOK) {
+                                Log.d(TAG, "locking")
+                                devicePolicyManager.lockNow()
+                                if (prefs.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                            }
+                        }, 2000)
+                    }
                 } else {
                     handler.removeCallbacksAndMessages(null)
-                    handler.postDelayed({
-                        if (powerManager?.isInteractive != true) {
-                            powerManager?.newWakeLock(
-                                (PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE),
-                                TAG
-                            )?.acquire(0)
-                            vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
-                        }
-                    }, 100)
+                    if (prefs.getBoolean("ActionWake", false)) {
+                        handler.postDelayed({
+                            if (powerManager?.isInteractive != true) {
+                                powerManager?.newWakeLock(
+                                    (PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE),
+                                    TAG
+                                )?.acquire(0)
+                                if (prefs.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+                            }
+                        }, 100)
+                    }
                 }
             }
         }
