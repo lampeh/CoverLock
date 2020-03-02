@@ -9,5 +9,8 @@
     <string name="adminError">Device admin request failed</string>
 
     <string name="prefActionLock">Lock when covered</string>
+    <string name="prefLockDelay">Lock delay</string>
     <string name="prefActionWake">Wake when uncovered</string>
+    <string name="prefWakeDelay">Wake delay</string>
+    <string name="prefStartOnBoot">Start service on boot</string>
 </resources>

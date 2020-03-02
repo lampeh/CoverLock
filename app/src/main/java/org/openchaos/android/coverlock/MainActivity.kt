@@ -25,6 +25,8 @@ class MainActivity : FragmentActivity() {
     fun toggleAdmin(button: View) {
         Log.d(TAG, "toggleAdmin()")
 
+        // TODO: decouple device admin access from current service state
+
         if ((button as CompoundButton).isChecked) {
             Log.d(TAG, "requesting device admin access")
             startActivityForResult(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {

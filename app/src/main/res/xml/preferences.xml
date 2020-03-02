@@ -5,11 +5,17 @@
         android:defaultValue="true"
         app:iconSpaceReserved="false"
         app:key="ActionLock"
-        app:title="@string/prefActionLock"/>
+        app:title="@string/prefActionLock" />
 
     <SwitchPreference
         android:defaultValue="true"
         app:iconSpaceReserved="false"
         app:key="ActionWake"
-        app:title="@string/prefActionWake"/>
+        app:title="@string/prefActionWake" />
+
+    <SwitchPreference
+        android:defaultValue="true"
+        app:iconSpaceReserved="false"
+        app:key="StartOnBoot"
+        app:title="@string/prefStartOnBoot" />
 </PreferenceScreen>
