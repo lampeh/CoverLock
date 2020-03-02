@@ -1,5 +1,3 @@
 package org.openchaos.android.coverlock.service
 
-import android.app.admin.DeviceAdminReceiver
-
-class LockAdmin: DeviceAdminReceiver()
+class LockAdmin: android.app.admin.DeviceAdminReceiver()
