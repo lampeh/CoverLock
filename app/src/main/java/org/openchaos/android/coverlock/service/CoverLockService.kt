@@ -55,6 +55,7 @@ class CoverLockService : Service(), SensorEventListener {
         } catch (e: Exception) {
             Log.e(TAG, "Error in required components", e)
             stopSelf() // TODO: test it
+            return
         }
 
         adminComponentName = ComponentName(this, LockAdmin::class.java)
