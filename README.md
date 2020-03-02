@@ -12,7 +12,7 @@ TODO:
 
 Limitations:
 ------------
-- Face Unlock, Fingerprint and other "weak" authentication cannot be used after locking the device with DevicePolicyManager.locknow()
+- Face Unlock, Fingerprint and other "weak" authentication cannot be used after locking the device with DevicePolicyManager.lockNow()
   - "After this method is called, the device must be unlocked using strong authentication (PIN, pattern, or password)" [DevicePolicyManager#lockNow()](https://developer.android.com/reference/android/app/admin/DevicePolicyManager#lockNow())
   - DISABLE_KEYGUARD_FEATURES won't work, either: [Device admin deprecation](https://developers.google.com/android/work/device-admin-deprecation)
   - any other "lock *now*" method available?
