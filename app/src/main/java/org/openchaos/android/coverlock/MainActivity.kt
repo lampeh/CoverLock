@@ -1,6 +1,5 @@
 package org.openchaos.android.coverlock
 
-import android.app.Activity
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
@@ -8,13 +7,14 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.widget.Switch
+import android.widget.CompoundButton
 import android.widget.Toast
+import androidx.fragment.app.FragmentActivity
 import org.openchaos.android.coverlock.service.CoverLockService
 import org.openchaos.android.coverlock.service.LockAdmin
 
 
-class MainActivity : Activity() {
+class MainActivity : FragmentActivity() {
     private val TAG = this.javaClass.simpleName
 
     private lateinit var devicePolicyManager: DevicePolicyManager
@@ -22,14 +22,16 @@ class MainActivity : Activity() {
     private lateinit var serviceIntent: Intent
 
 
-    fun toggleAdmin(switch: View) {
+    fun toggleAdmin(button: View) {
         Log.d(TAG, "toggleAdmin()")
 
-        if ((switch as Switch).isChecked) {
+        if ((button as CompoundButton).isChecked) {
+            Log.d(TAG, "requesting device admin access")
             startActivityForResult(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
                 putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponentName)
             }, 23)
         } else {
+            Log.d(TAG, "removing device admin access")
             devicePolicyManager.removeActiveAdmin(adminComponentName)
             stopService(serviceIntent)
         }
@@ -48,7 +50,7 @@ class MainActivity : Activity() {
         val adminActive = devicePolicyManager.isAdminActive(adminComponentName)
         Log.i(TAG, "device admin ${if (adminActive) "en" else "dis"}abled")
 
-        findViewById<Switch>(R.id.swEnable).apply {
+        findViewById<CompoundButton>(R.id.btnEnabled).apply {
             isChecked = adminActive
             isEnabled = true
         }
