@@ -6,7 +6,7 @@ apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion 29
-    buildToolsVersion '30.0.0 rc1'
+    buildToolsVersion '29.0.3'
     defaultConfig {
         applicationId "org.openchaos.android.coverlock"
         minSdkVersion 26
