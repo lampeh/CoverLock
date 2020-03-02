@@ -72,5 +72,7 @@ class MainActivity : FragmentActivity() {
         } else {
             Toast.makeText(this, R.string.adminError, Toast.LENGTH_SHORT).show()
         }
+
+        return super.onActivityResult(requestCode, resultCode, data)
     }
 }
