@@ -10,10 +10,10 @@ class BootReceiver : BroadcastReceiver() {
     private val TAG = this.javaClass.simpleName
 
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d(TAG, "BootReceiver.onReceive()")
+        Log.d(TAG, "onReceive()")
 
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) {
-            Log.e(TAG, "BootReceiver called with invalid intent")
+            Log.e(TAG, "called with invalid intent")
             return
         }
 
