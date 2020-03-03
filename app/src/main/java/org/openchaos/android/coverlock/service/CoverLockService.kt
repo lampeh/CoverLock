@@ -16,6 +16,7 @@ import android.util.Log
 import androidx.preference.PreferenceManager
 import org.openchaos.android.coverlock.MainActivity
 import org.openchaos.android.coverlock.R
+import org.openchaos.android.coverlock.receiver.LockAdmin
 
 
 // TODO: maybe cache preference values, reload service on change

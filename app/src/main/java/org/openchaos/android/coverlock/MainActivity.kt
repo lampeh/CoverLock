@@ -11,7 +11,7 @@ import android.widget.CompoundButton
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import org.openchaos.android.coverlock.service.CoverLockService
-import org.openchaos.android.coverlock.service.LockAdmin
+import org.openchaos.android.coverlock.receiver.LockAdmin
 
 
 class MainActivity : FragmentActivity() {
