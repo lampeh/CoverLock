@@ -13,17 +13,18 @@
         android:enabled="false"
         android:onClick="toggleAdmin"
         android:padding="16dp"
-        android:textSize="16sp"
-        android:text="@string/toggleAdmin" />
+        android:text="@string/toggleAdmin"
+        android:textSize="16sp" />
 
     <Switch
         android:id="@+id/btnServiceEnabled"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:enabled="false"
         android:onClick="toggleService"
         android:padding="16dp"
-        android:textSize="16sp"
-        android:text="@string/toggleService" />
+        android:text="@string/toggleService"
+        android:textSize="16sp" />
 
     <View
         android:layout_width="match_parent"

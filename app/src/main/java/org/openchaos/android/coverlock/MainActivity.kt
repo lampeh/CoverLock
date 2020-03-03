@@ -67,7 +67,10 @@ class MainActivity : FragmentActivity() {
             }
         }
 
-        // TODO: check service state, set btnServiceEnabled
+        findViewById<CompoundButton>(R.id.btnServiceEnabled).apply {
+            isChecked = CoverLockService.isRunning
+            isEnabled = true
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

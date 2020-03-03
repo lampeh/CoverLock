@@ -23,6 +23,8 @@ import org.openchaos.android.coverlock.R
 class CoverLockService : Service(), SensorEventListener {
     private val TAG = this.javaClass.simpleName
 
+    companion object Status { var isRunning: Boolean = false }
+
     private lateinit var devicePolicyManager: DevicePolicyManager
     private lateinit var sensorManager: SensorManager
     private lateinit var sensor: Sensor
@@ -85,6 +87,8 @@ class CoverLockService : Service(), SensorEventListener {
                 .setContentIntent(PendingIntent.getActivity(applicationContext, 0, Intent(applicationContext, MainActivity::class.java),0))
                 .build()
         )
+
+        isRunning = true
     }
 
     override fun onDestroy() {
@@ -101,6 +105,8 @@ class CoverLockService : Service(), SensorEventListener {
         }
 
         stopForeground(true)
+
+        isRunning = false
 
         return super.onDestroy()
     }
