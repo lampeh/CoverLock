@@ -3,15 +3,19 @@
     <string name="app_desc">Lock and Cover!</string>
 
     <string name="srv_name">CoverLockService</string>
-    <string name="srv_desc">Monitors proximity sensor for CoverLock</string>
+    <string name="srv_desc">Monitoring proximity sensor</string>
 
     <string name="adminEnabled">CoverLock is now a device admin</string>
     <string name="adminError">Device admin request failed</string>
 
     <string name="prefActionLock">Lock when covered</string>
+    <string name="prefLockDistance">Lock distance</string>
     <string name="prefLockDelay">Lock delay</string>
     <string name="prefActionWake">Wake when uncovered</string>
+    <string name="prefWakeDistance">Wake distance</string>
     <string name="prefWakeDelay">Wake delay</string>
     <string name="prefStartOnBoot">Start service on boot</string>
     <string name="prefVibrate">Vibrate</string>
+    <string name="toggleService">Enabled</string>
+    <string name="toggleAdmin">Armed</string>
 </resources>

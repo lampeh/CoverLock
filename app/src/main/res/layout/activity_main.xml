@@ -5,12 +5,25 @@
     android:orientation="vertical"
     android:padding="12dp">
 
-    <ToggleButton
-        android:id="@+id/btnEnabled"
+    <!-- TODO: consistently align with PreferenceFragment -->
+    <Switch
+        android:id="@+id/btnAdminEnabled"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:enabled="false"
-        android:onClick="toggleAdmin"/>
+        android:onClick="toggleAdmin"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:text="@string/toggleAdmin" />
+
+    <Switch
+        android:id="@+id/btnServiceEnabled"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="toggleService"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:text="@string/toggleService" />
 
     <View
         android:layout_width="match_parent"
