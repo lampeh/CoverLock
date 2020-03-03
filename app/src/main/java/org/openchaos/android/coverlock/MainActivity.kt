@@ -25,8 +25,6 @@ class MainActivity : FragmentActivity() {
     fun toggleAdmin(button: View) {
         Log.d(TAG, "toggleAdmin()")
 
-        // TODO: decouple device admin access from current service state
-
         if ((button as CompoundButton).isChecked) {
             Log.d(TAG, "requesting device admin access")
             startActivityForResult(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
@@ -35,6 +33,17 @@ class MainActivity : FragmentActivity() {
         } else {
             Log.d(TAG, "removing device admin access")
             devicePolicyManager.removeActiveAdmin(adminComponentName)
+        }
+    }
+
+    fun toggleService(button: View) {
+        Log.d(TAG, "toggleService()")
+
+        if ((button as CompoundButton).isChecked) {
+            Log.d(TAG, "starting service")
+            startService(serviceIntent)
+        } else {
+            Log.d(TAG, "stopping service")
             stopService(serviceIntent)
         }
     }
@@ -49,17 +58,16 @@ class MainActivity : FragmentActivity() {
         adminComponentName = ComponentName(this, LockAdmin::class.java)
         serviceIntent = Intent(this, CoverLockService::class.java)
 
-        val adminActive = devicePolicyManager.isAdminActive(adminComponentName)
-        Log.i(TAG, "device admin ${if (adminActive) "en" else "dis"}abled")
+        devicePolicyManager.isAdminActive(adminComponentName).also {
+            Log.i(TAG, "device admin ${if (it) "en" else "dis"}abled")
 
-        findViewById<CompoundButton>(R.id.btnEnabled).apply {
-            isChecked = adminActive
-            isEnabled = true
+            findViewById<CompoundButton>(R.id.btnAdminEnabled).apply {
+                isChecked = it
+                isEnabled = true
+            }
         }
 
-        if (adminActive) {
-            startService(serviceIntent)
-        }
+        // TODO: check service state, set btnServiceEnabled
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -70,7 +78,6 @@ class MainActivity : FragmentActivity() {
 
         if (resultCode == RESULT_OK) {
             Toast.makeText(this, R.string.adminEnabled, Toast.LENGTH_SHORT).show()
-            startService(serviceIntent)
         } else {
             Toast.makeText(this, R.string.adminError, Toast.LENGTH_SHORT).show()
         }

@@ -17,6 +17,8 @@ import org.openchaos.android.coverlock.MainActivity
 import org.openchaos.android.coverlock.R
 
 
+// TODO: maybe cache preference values, reload service on change
+
 class CoverLockService : Service(), SensorEventListener {
     private val TAG = this.javaClass.simpleName
 
@@ -32,6 +34,7 @@ class CoverLockService : Service(), SensorEventListener {
 
     private var threshold: Float = Float.NEGATIVE_INFINITY
     private var covered: Boolean = false
+
 
     override fun onBind(intent: Intent): IBinder? {
         Log.e(TAG, "onBind() should not be called")
@@ -75,8 +78,8 @@ class CoverLockService : Service(), SensorEventListener {
                     (getSystemService(NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(it)
                     it.id
                 })
-                .setContentText(getString(R.string.srv_desc))
-                .setSmallIcon(R.mipmap.ic_launcher_round)
+                .setSubText(getString(R.string.srv_desc))
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(PendingIntent.getActivity(applicationContext, 0, Intent(applicationContext, MainActivity::class.java),0))
                 .build()
         )
@@ -122,7 +125,7 @@ class CoverLockService : Service(), SensorEventListener {
                                 devicePolicyManager.lockNow()
                                 if (prefs.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
                             }
-                        }, 2000)
+                        }, 2000) // TODO: use LockDelay
                     }
                 } else {
                     handler.removeCallbacksAndMessages(null)
@@ -135,7 +138,7 @@ class CoverLockService : Service(), SensorEventListener {
                                 )?.acquire(0)
                                 if (prefs.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
                             }
-                        }, 100)
+                        }, 300) // TODO: use WakeDelay
                     }
                 }
             }
@@ -153,7 +156,7 @@ class CoverLockService : Service(), SensorEventListener {
                 Log.i(TAG, "sensor offline or unreliable")
             }
             else -> {
-                threshold = sensor.maximumRange / 2
+                threshold = sensor.maximumRange / 2 // TODO: use LockDistance/WakeDistance
                 Log.d(TAG, "maxRange = ${sensor.maximumRange}, threshold = $threshold")
             }
         }
