@@ -18,10 +18,9 @@ class BootReceiver : BroadcastReceiver() {
             return
         }
 
-        // TODO: context or context.applicationContext?
-        if (PreferenceManager.getDefaultSharedPreferences(context).getBoolean("StartOnBoot", false)) {
+        if (PreferenceManager.getDefaultSharedPreferences(context.applicationContext).getBoolean("StartOnBoot", false)) {
             Log.d(TAG, "starting service")
-            context.startForegroundService(Intent(context, CoverLockService::class.java))
+            context.startForegroundService(Intent(context.applicationContext, CoverLockService::class.java))
         }
     }
 }
