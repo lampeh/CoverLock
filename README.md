@@ -8,6 +8,10 @@ TODO:
 - Configurable delay and other preferences
 - Un-register sensor listener on lock, re-register on screen on event (optional, might save battery)
 - FULL_WAKE_LOCK is deprecated but ACQUIRE_CAUSES_WAKEUP does not work with PARTIAL_WAKE_LOCK. Ignore, Retry?
+- don't lock if whitelisted apps are in foreground or landscape mode (optional, would I really use that?)
+- wake only if locked by this app
+- new icon
+- license: MIT, GPL, Whatever?
 
 
 Limitations:
@@ -18,3 +22,6 @@ Limitations:
   - any other "lock *now*" method available?
   - Trust Agent API not available
   - see also: EMM DPC OCD
+
+
+![Works on my Umidigi F1](.womm.png)
