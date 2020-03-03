@@ -31,7 +31,7 @@ class CoverLockService : Service(), SensorEventListener {
     private lateinit var sensor: Sensor
     private lateinit var adminComponentName: ComponentName
     private lateinit var handler: Handler
-    private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var prefs: SharedPreferences
 
     private var telephonyManager: TelephonyManager? = null
     private var powerManager: PowerManager? = null
@@ -61,7 +61,7 @@ class CoverLockService : Service(), SensorEventListener {
             sensorManager = getSystemService(Context.SENSOR_SERVICE)!! as SensorManager
             sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)!!
             handler = Handler()
-            sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+            prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
         } catch (e: Exception) {
             Log.e(TAG, "Error in required components", e)
             stopSelf() // TODO: test it
@@ -127,25 +127,25 @@ class CoverLockService : Service(), SensorEventListener {
             if (devicePolicyManager.isAdminActive(adminComponentName)) {
                 if (covered) {
                     handler.removeCallbacksAndMessages(null)
-                    if (sharedPreferences.getBoolean("ActionLock", false)) {
+                    if (prefs.getBoolean("ActionLock", false)) {
                         handler.postDelayed({
                             if (powerManager?.isInteractive != false && telephonyManager?.callState != TelephonyManager.CALL_STATE_OFFHOOK) {
                                 Log.d(TAG, "locking")
                                 devicePolicyManager.lockNow()
-                                if (sharedPreferences.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                                if (prefs.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
                             }
                         }, 2000) // TODO: use LockDelay
                     }
                 } else {
                     handler.removeCallbacksAndMessages(null)
-                    if (sharedPreferences.getBoolean("ActionWake", false)) {
+                    if (prefs.getBoolean("ActionWake", false)) {
                         handler.postDelayed({
                             if (powerManager?.isInteractive != true) {
                                 powerManager?.newWakeLock(
                                     (PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE),
                                     TAG
                                 )?.acquire(0)
-                                if (sharedPreferences.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+                                if (prefs.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
                             }
                         }, 300) // TODO: use WakeDelay
                     }
