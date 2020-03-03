@@ -5,6 +5,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -27,6 +28,7 @@ class CoverLockService : Service(), SensorEventListener {
     private lateinit var sensor: Sensor
     private lateinit var adminComponentName: ComponentName
     private lateinit var handler: Handler
+    private lateinit var sharedPreferences: SharedPreferences
 
     private var telephonyManager: TelephonyManager? = null
     private var powerManager: PowerManager? = null
@@ -56,6 +58,7 @@ class CoverLockService : Service(), SensorEventListener {
             sensorManager = getSystemService(Context.SENSOR_SERVICE)!! as SensorManager
             sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)!!
             handler = Handler()
+            sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
         } catch (e: Exception) {
             Log.e(TAG, "Error in required components", e)
             stopSelf() // TODO: test it
@@ -64,8 +67,7 @@ class CoverLockService : Service(), SensorEventListener {
 
         adminComponentName = ComponentName(this, LockAdmin::class.java)
 
-        threshold = sensor.maximumRange / 2
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, 1000000)
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensor.maxDelay)
 
         // TODO: cleanup
         // TODO: set flags in ContentIntent?
@@ -107,36 +109,36 @@ class CoverLockService : Service(), SensorEventListener {
         Log.d(TAG, "onSensorChanged()")
         assert(event.sensor.type == Sensor.TYPE_PROXIMITY)
 
-        val prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-
         val oldState = covered
-        covered = (event.values[0] <= threshold) // TODO: consider NaN?
+        val rawValue = event.values[0]
+
+        covered = (rawValue <= threshold)
 
         if (covered != oldState) {
-            Log.d(TAG, (if (covered) "" else "un") + "covered")
+            Log.d(TAG, (if (covered) "" else "un") + "covered ($rawValue)")
 
             if (devicePolicyManager.isAdminActive(adminComponentName)) {
                 if (covered) {
                     handler.removeCallbacksAndMessages(null)
-                    if (prefs.getBoolean("ActionLock", false)) {
+                    if (sharedPreferences.getBoolean("ActionLock", false)) {
                         handler.postDelayed({
                             if (powerManager?.isInteractive != false && telephonyManager?.callState != TelephonyManager.CALL_STATE_OFFHOOK) {
                                 Log.d(TAG, "locking")
                                 devicePolicyManager.lockNow()
-                                if (prefs.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                                if (sharedPreferences.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
                             }
                         }, 2000) // TODO: use LockDelay
                     }
                 } else {
                     handler.removeCallbacksAndMessages(null)
-                    if (prefs.getBoolean("ActionWake", false)) {
+                    if (sharedPreferences.getBoolean("ActionWake", false)) {
                         handler.postDelayed({
                             if (powerManager?.isInteractive != true) {
                                 powerManager?.newWakeLock(
                                     (PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE),
                                     TAG
                                 )?.acquire(0)
-                                if (prefs.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+                                if (sharedPreferences.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
                             }
                         }, 300) // TODO: use WakeDelay
                     }

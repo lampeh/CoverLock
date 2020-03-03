@@ -47,7 +47,6 @@ jobs:
           sudo chown "${USER}.${USER}" "${TMPDIR}/sdk-overlay/merged"
           ls -la "${TMPDIR}/sdk-overlay/merged/"
 
-      # TODO: /build.gradle contains gradle-plugin version. include in hash?
       - name: Cache gradle/wrapper
         uses: actions/cache@v1
         env:
