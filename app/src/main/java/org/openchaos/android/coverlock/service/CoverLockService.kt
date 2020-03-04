@@ -104,7 +104,7 @@ class CoverLockService : Service(), SensorEventListener {
         startForeground(
             23,
             Notification.Builder(
-                    applicationContext,
+                    this,
                     NotificationChannel(TAG, getString(R.string.srv_name), NotificationManager.IMPORTANCE_LOW).let {
                         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(it)
                         it.id
@@ -126,7 +126,7 @@ class CoverLockService : Service(), SensorEventListener {
 
         // start/stop sensor on screen change
         // TODO: it's only useful if either actionLock/Wake is disabled
-        applicationContext.registerReceiver(screenStateReceiver, IntentFilter().apply {
+        registerReceiver(screenStateReceiver, IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
         })
@@ -137,7 +137,7 @@ class CoverLockService : Service(), SensorEventListener {
     override fun onDestroy() {
         Log.d(TAG, "onDestroy()")
 
-        application.unregisterReceiver(screenStateReceiver)
+        unregisterReceiver(screenStateReceiver)
         stopSensor()
         handler.removeCallbacksAndMessages(null)
         stopForeground(true)
