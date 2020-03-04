@@ -113,44 +113,58 @@ class CoverLockService : Service(), SensorEventListener {
     }
 
     override fun onSensorChanged(event: SensorEvent) {
-        Log.d(TAG, "onSensorChanged()")
+        //Log.d(TAG, "onSensorChanged()") // Log spam on virtual androids
         assert(event.sensor.type == Sensor.TYPE_PROXIMITY)
 
-        val oldState = covered
         val rawValue = event.values[0]
+        val newState = (rawValue <= threshold)
 
-        covered = (rawValue <= threshold)
+        if (newState == covered) {
+            return
+        }
 
-        if (covered != oldState) {
-            Log.d(TAG, (if (covered) "" else "un") + "covered ($rawValue)")
+        // cancel delayed action
+        handler.removeCallbacksAndMessages(null)
 
-            if (devicePolicyManager.isAdminActive(adminComponentName)) {
-                if (covered) {
-                    handler.removeCallbacksAndMessages(null)
-                    if (prefs.getBoolean("ActionLock", false)) {
-                        handler.postDelayed({
-                            if (powerManager?.isInteractive != false && telephonyManager?.callState != TelephonyManager.CALL_STATE_OFFHOOK) {
-                                Log.d(TAG, "locking")
-                                devicePolicyManager.lockNow()
-                                if (prefs.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
-                            }
-                        }, 2000) // TODO: use LockDelay
-                    }
-                } else {
-                    handler.removeCallbacksAndMessages(null)
-                    if (prefs.getBoolean("ActionWake", false)) {
-                        handler.postDelayed({
-                            if (powerManager?.isInteractive != true) {
-                                powerManager?.newWakeLock(
-                                    (PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE),
-                                    TAG
-                                )?.acquire(0)
-                                if (prefs.getBoolean("Vibrate", false)) vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
-                            }
-                        }, 300) // TODO: use WakeDelay
-                    }
-                }
+        covered = newState
+        Log.d(TAG, (if (covered) "" else "un") + "covered ($rawValue)")
+
+        // TODO: ignore isInteractive?
+        // TODO: whitelist apps and modes
+        fun shouldLock(): Boolean = (
+            devicePolicyManager.isAdminActive(adminComponentName) &&
+            powerManager?.isInteractive != false &&  // if true || null
+            telephonyManager?.callState != TelephonyManager.CALL_STATE_OFFHOOK)
+
+        fun shouldWake(): Boolean = (
+            powerManager?.isInteractive != true)
+
+        fun vibrate(milliseconds: Long) {
+            if (prefs.getBoolean("Vibrate", false)) {
+                vibrator?.vibrate(VibrationEffect.createOneShot(milliseconds, VibrationEffect.DEFAULT_AMPLITUDE))
             }
+        }
+
+        if (covered && prefs.getBoolean("ActionLock", false)) {
+            handler.postDelayed({
+                if (shouldLock()) {
+                    Log.i(TAG, "locking")
+                    devicePolicyManager.lockNow()
+                    vibrate(50)
+                }
+            }, 2000) // TODO: use LockDelay
+        } else if (!covered && prefs.getBoolean("ActionWake", false)) {
+            handler.postDelayed({
+                if (shouldWake()) {
+                    Log.i(TAG, "awake!")
+                    @Suppress("DEPRECATION")
+                    powerManager?.newWakeLock(
+                        (PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE),
+                        TAG
+                    )?.acquire(0)
+                    vibrate(100)
+                }
+            }, 300) // TODO: use WakeDelay
         }
     }
 
