@@ -48,7 +48,6 @@ class CoverLockService : Service(), SensorEventListener {
 
     override fun onCreate() {
         Log.d(TAG, "onCreate()")
-        super.onCreate()
 
         // Optional components
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager?
@@ -69,27 +68,42 @@ class CoverLockService : Service(), SensorEventListener {
         }
 
         adminComponentName = ComponentName(this, LockAdmin::class.java)
+    }
 
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensor.maxDelay)
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand()")
 
-        // TODO: cleanup
-        // TODO: set flags in ContentIntent?
-        // TODO: getSystemService null check?
-        startForeground(
-            23,
-            Notification.Builder(
-                applicationContext,
-                NotificationChannel(TAG, getString(R.string.srv_name), NotificationManager.IMPORTANCE_LOW).let {
-                    (getSystemService(NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(it)
-                    it.id
-                })
-                .setSubText(getString(R.string.srv_desc))
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentIntent(PendingIntent.getActivity(applicationContext, 0, Intent(applicationContext, MainActivity::class.java),0))
-                .build()
-        )
+        if (!isRunning) {
+            sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensor.maxDelay)
 
-        isRunning = true
+            // TODO: cleanup
+            // TODO: set flags in ContentIntent?
+            // TODO: getSystemService null check?
+            startForeground(
+                23,
+                Notification.Builder(
+                        applicationContext,
+                        NotificationChannel(TAG, getString(R.string.srv_name), NotificationManager.IMPORTANCE_LOW).let {
+                            (getSystemService(NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(it)
+                            it.id
+                        })
+                    .setSubText(getString(R.string.srv_desc))
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentIntent(
+                        PendingIntent.getActivity(
+                            applicationContext,
+                            0,
+                            Intent(applicationContext, MainActivity::class.java),
+                            0
+                        )
+                    )
+                    .build()
+            )
+
+            isRunning = true
+        }
+
+        return START_STICKY
     }
 
     override fun onDestroy() {
@@ -108,8 +122,6 @@ class CoverLockService : Service(), SensorEventListener {
         stopForeground(true)
 
         isRunning = false
-
-        return super.onDestroy()
     }
 
     override fun onSensorChanged(event: SensorEvent) {

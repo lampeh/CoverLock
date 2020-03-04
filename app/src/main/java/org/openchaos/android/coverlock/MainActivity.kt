@@ -54,8 +54,8 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "onCreate()")
-
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.activity_main)
 
         devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
@@ -63,8 +63,8 @@ class MainActivity : FragmentActivity() {
         serviceIntent = Intent(this, CoverLockService::class.java)
 
         // TODO: service state and activity can get out of sync
-        // TODO: activiy leaks receiver. should be registered in background service?
-        //registerReceiver(screenStateReceiver, IntentFilter().apply {
+        // TODO: receiver lifecycle?
+        //applicationContext.registerReceiver(screenStateReceiver, IntentFilter().apply {
         //    addAction(Intent.ACTION_SCREEN_ON)
         //    addAction(Intent.ACTION_SCREEN_OFF)
         //})
@@ -74,11 +74,11 @@ class MainActivity : FragmentActivity() {
         Log.d(TAG, "onResume()")
         super.onResume()
 
-        devicePolicyManager.isAdminActive(adminComponentName).also {
-            Log.i(TAG, "device admin ${if (it) "en" else "dis"}abled")
+        devicePolicyManager.isAdminActive(adminComponentName).also { active ->
+            Log.i(TAG, "device admin ${if (active) "en" else "dis"}abled")
 
             findViewById<CompoundButton>(R.id.btnAdminEnabled).apply {
-                isChecked = it
+                isChecked = active
                 isEnabled = true
             }
         }

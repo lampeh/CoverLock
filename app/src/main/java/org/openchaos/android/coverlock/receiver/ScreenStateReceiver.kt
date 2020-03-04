@@ -12,6 +12,7 @@ class ScreenStateReceiver : BroadcastReceiver() {
 
     // ACTION_SCREEN_ON/OFF report "interactive" state, not display state. close enough
 
+    // TODO: signal state to service via binder
     override fun onReceive(context: Context, intent: Intent) {
         Log.d(TAG, "onReceive()")
 
