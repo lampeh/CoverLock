@@ -38,7 +38,7 @@ class CoverLockService : Service(), SensorEventListener {
     private var vibrator: Vibrator? = null
 
     private var threshold: Float = Float.NEGATIVE_INFINITY
-    private var covered: Boolean = false
+    private var coverState: Boolean = false
 
 
     override fun onBind(intent: Intent): IBinder? {
@@ -49,12 +49,15 @@ class CoverLockService : Service(), SensorEventListener {
     override fun onCreate() {
         Log.d(TAG, "onCreate()")
 
-        // Optional components
+        // empty DeviceAdminReceiver
+        adminComponentName = ComponentName(this, LockAdmin::class.java)
+
+        // optional components
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager?
         powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager?
         vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator?
 
-        // Required components
+        // required components
         try {
             devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE)!! as DevicePolicyManager
             sensorManager = getSystemService(Context.SENSOR_SERVICE)!! as SensorManager
@@ -66,8 +69,6 @@ class CoverLockService : Service(), SensorEventListener {
             stopSelf() // TODO: test it
             return
         }
-
-        adminComponentName = ComponentName(this, LockAdmin::class.java)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -131,15 +132,15 @@ class CoverLockService : Service(), SensorEventListener {
         val rawValue = event.values[0]
         val newState = (rawValue <= threshold)
 
-        if (newState == covered) {
+        if (newState == coverState) {
             return
         }
 
+        coverState = newState
+        Log.d(TAG, (if (coverState) "" else "un") + "covered ($rawValue)")
+
         // cancel delayed action
         handler.removeCallbacksAndMessages(null)
-
-        covered = newState
-        Log.d(TAG, (if (covered) "" else "un") + "covered ($rawValue)")
 
         // TODO: ignore isInteractive?
         // TODO: whitelist apps and modes
@@ -157,7 +158,7 @@ class CoverLockService : Service(), SensorEventListener {
             }
         }
 
-        if (covered && prefs.getBoolean("ActionLock", false)) {
+        if (coverState && prefs.getBoolean("ActionLock", false)) {
             handler.postDelayed({
                 if (shouldLock()) {
                     Log.i(TAG, "locking")
@@ -165,7 +166,7 @@ class CoverLockService : Service(), SensorEventListener {
                     vibrate(50)
                 }
             }, 2000) // TODO: use LockDelay
-        } else if (!covered && prefs.getBoolean("ActionWake", false)) {
+        } else if (!coverState && prefs.getBoolean("ActionWake", false)) {
             handler.postDelayed({
                 if (shouldWake()) {
                     Log.i(TAG, "awake!")
