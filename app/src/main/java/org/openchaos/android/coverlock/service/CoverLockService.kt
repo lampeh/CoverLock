@@ -152,6 +152,7 @@ class CoverLockService : Service(), SensorEventListener {
         val rawValue = event.values[0]
         val newState = (rawValue <= threshold)
 
+        // nothing changed
         if (newState == coverState) {
             return
         }
@@ -190,7 +191,7 @@ class CoverLockService : Service(), SensorEventListener {
             handler.postDelayed({
                 if (shouldWake()) {
                     Log.i(TAG, "awake!")
-                    @Suppress("DEPRECATION")
+                    @Suppress("DEPRECATION") // only FULL_WAKE_LOCK works the way we woke
                     powerManager?.newWakeLock(
                         (PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE),
                         TAG
@@ -210,11 +211,11 @@ class CoverLockService : Service(), SensorEventListener {
             SensorManager.SENSOR_STATUS_UNRELIABLE -> {
                 threshold = Float.NEGATIVE_INFINITY
                 Log.i(TAG, "sensor offline or unreliable")
-            }
-            else -> {
-                threshold = sensor.maximumRange / 2 // TODO: use LockDistance/WakeDistance
-                Log.d(TAG, "maxRange = ${sensor.maximumRange}, threshold = $threshold")
+                return
             }
         }
+
+        threshold = sensor.maximumRange / 2 // TODO: use LockDistance/WakeDistance
+        Log.d(TAG, "maxRange = ${sensor.maximumRange}, threshold = $threshold")
     }
 }
