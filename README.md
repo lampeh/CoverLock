@@ -4,7 +4,7 @@ CoverLock
 
 Monitors proximity sensor and locks screen.
 
-![Android Build](https://github.com/lampeh/CoverLock/workflows/Android%20Builder/badge.svg)
+[![Android Builder](https://github.com/lampeh/CoverLock/workflows/Android%20Builder/badge.svg)](https://github.com/lampeh/CoverLock/actions?query=workflow%3A%22Android+Builder%22)
 
 TODO:
 -----
