@@ -2,10 +2,7 @@ package org.openchaos.android.coverlock.service
 
 import android.app.*
 import android.app.admin.DevicePolicyManager
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.SharedPreferences
+import android.content.*
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -39,7 +36,38 @@ class CoverLockService : Service(), SensorEventListener {
 
     private var threshold: Float = Float.NEGATIVE_INFINITY
     private var coverState: Boolean = false
+    private var sensorRunning: Boolean = false
 
+
+    private fun startSensor() {
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensor.maxDelay)
+        sensorRunning = true
+    }
+
+    private fun stopSensor() {
+        sensorManager.unregisterListener(this, sensor)
+        sensorRunning = false
+    }
+
+    private fun changeState(interactive: Boolean) {
+        val shouldRun = prefs.getBoolean(if (interactive) "ActionLock" else "ActionWake", false)
+        when {
+            shouldRun && !sensorRunning -> startSensor()
+            !shouldRun && sensorRunning -> stopSensor()
+        }
+    }
+
+    private val screenStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.d(TAG, "onReceive()")
+
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_ON -> changeState(true)
+                Intent.ACTION_SCREEN_OFF -> changeState(false)
+                else -> Log.e(TAG, "unknown intent")
+            }
+        }
+    }
 
     override fun onBind(intent: Intent): IBinder? {
         Log.e(TAG, "onBind() should not be called")
@@ -69,57 +97,49 @@ class CoverLockService : Service(), SensorEventListener {
             stopSelf() // TODO: test it
             return
         }
-    }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "onStartCommand()")
-
-        if (!isRunning) {
-            sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensor.maxDelay)
-
-            // TODO: cleanup
-            // TODO: set flags in ContentIntent?
-            // TODO: getSystemService null check?
-            startForeground(
-                23,
-                Notification.Builder(
+        // TODO: cleanup
+        // TODO: set flags in ContentIntent?
+        // TODO: getSystemService null check?
+        startForeground(
+            23,
+            Notification.Builder(
+                    applicationContext,
+                    NotificationChannel(TAG, getString(R.string.srv_name), NotificationManager.IMPORTANCE_LOW).let {
+                        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(it)
+                        it.id
+                    })
+                .setSubText(getString(R.string.srv_desc))
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentIntent(
+                    PendingIntent.getActivity(
                         applicationContext,
-                        NotificationChannel(TAG, getString(R.string.srv_name), NotificationManager.IMPORTANCE_LOW).let {
-                            (getSystemService(NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(it)
-                            it.id
-                        })
-                    .setSubText(getString(R.string.srv_desc))
-                    .setSmallIcon(R.mipmap.ic_launcher)
-                    .setContentIntent(
-                        PendingIntent.getActivity(
-                            applicationContext,
-                            0,
-                            Intent(applicationContext, MainActivity::class.java),
-                            0
-                        )
+                        0,
+                        Intent(applicationContext, MainActivity::class.java),
+                        0
                     )
-                    .build()
-            )
+                )
+                .build()
+        )
 
-            isRunning = true
-        }
+        changeState(powerManager?.isInteractive != false)
 
-        return START_STICKY
+        // start/stop sensor on screen change
+        // TODO: it's only useful if either actionLock/Wake is disabled
+        applicationContext.registerReceiver(screenStateReceiver, IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+        })
+
+        isRunning = true
     }
 
     override fun onDestroy() {
         Log.d(TAG, "onDestroy()")
 
-        // TODO: is this check necessary?
-
-        if (::sensorManager.isInitialized && ::sensor.isInitialized) {
-            sensorManager.unregisterListener(this, sensor)
-        }
-
-        if (::handler.isInitialized) {
-            handler.removeCallbacksAndMessages(null)
-        }
-
+        application.unregisterReceiver(screenStateReceiver)
+        stopSensor()
+        handler.removeCallbacksAndMessages(null)
         stopForeground(true)
 
         isRunning = false

@@ -13,7 +13,6 @@ import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import org.openchaos.android.coverlock.service.CoverLockService
 import org.openchaos.android.coverlock.receiver.LockAdmin
-import org.openchaos.android.coverlock.receiver.ScreenStateReceiver
 
 
 class MainActivity : FragmentActivity() {
@@ -22,8 +21,6 @@ class MainActivity : FragmentActivity() {
     private lateinit var devicePolicyManager: DevicePolicyManager
     private lateinit var adminComponentName: ComponentName
     private lateinit var serviceIntent: Intent
-
-    private val screenStateReceiver: ScreenStateReceiver = ScreenStateReceiver()
 
 
     fun toggleAdmin(button: View) {
@@ -61,13 +58,6 @@ class MainActivity : FragmentActivity() {
         devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         adminComponentName = ComponentName(this, LockAdmin::class.java)
         serviceIntent = Intent(this, CoverLockService::class.java)
-
-        // TODO: service state and activity can get out of sync
-        // TODO: receiver lifecycle?
-        //applicationContext.registerReceiver(screenStateReceiver, IntentFilter().apply {
-        //    addAction(Intent.ACTION_SCREEN_ON)
-        //    addAction(Intent.ACTION_SCREEN_OFF)
-        //})
     }
 
     override fun onResume() {

@@ -40,8 +40,6 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".receiver.ScreenStateReceiver" />
-
         <receiver android:name=".receiver.LockAdmin" android:permission="android.permission.BIND_DEVICE_ADMIN">
             <meta-data android:name="android.app.device_admin" android:resource="@xml/policies" />
             <intent-filter>
