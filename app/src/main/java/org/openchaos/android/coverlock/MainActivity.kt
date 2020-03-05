@@ -18,7 +18,7 @@ class MainActivity : FragmentActivity() {
     private val TAG = this.javaClass.simpleName
 
     companion object Constants {
-        const val REQUEST_ADMIN_ACCESS = 23
+        private const val REQUEST_ADMIN_ACCESS = 23
     }
 
     private lateinit var devicePolicyManager: DevicePolicyManager
