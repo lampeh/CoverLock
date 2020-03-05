@@ -17,6 +17,10 @@ import org.openchaos.android.coverlock.receiver.LockAdmin
 class MainActivity : FragmentActivity() {
     private val TAG = this.javaClass.simpleName
 
+    companion object Constants {
+        const val REQUEST_ADMIN_ACCESS = 23
+    }
+
     private lateinit var devicePolicyManager: DevicePolicyManager
     private lateinit var adminComponentName: ComponentName
     private lateinit var serviceIntent: Intent
@@ -29,7 +33,7 @@ class MainActivity : FragmentActivity() {
             Log.d(TAG, "requesting device admin access")
             startActivityForResult(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
                 putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponentName)
-            }, 23)
+            }, REQUEST_ADMIN_ACCESS)
         } else {
             Log.d(TAG, "removing device admin access")
             devicePolicyManager.removeActiveAdmin(adminComponentName)
@@ -52,11 +56,11 @@ class MainActivity : FragmentActivity() {
         Log.d(TAG, "onCreate()")
         super.onCreate(savedInstanceState)
 
-        setContentView(R.layout.activity_main)
-
         devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         adminComponentName = ComponentName(this, LockAdmin::class.java)
         serviceIntent = Intent(this, CoverLockService::class.java)
+
+        setContentView(R.layout.activity_main)
     }
 
     override fun onResume() {
@@ -81,7 +85,7 @@ class MainActivity : FragmentActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         Log.d(TAG, "onActivityResult($requestCode, $resultCode")
 
-        if (requestCode != 23)
+        if (requestCode != REQUEST_ADMIN_ACCESS)
             return
 
         if (resultCode == RESULT_OK) {
