@@ -5,8 +5,8 @@
     android:installLocation="internalOnly">
     <!-- TODO: allow external storage, make StartOnBoot depend on install location -->
 
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
@@ -31,8 +31,7 @@
 
         <service
             android:name=".service.CoverLockService"
-            android:description="@string/srv_desc"
-            android:exported="false" />
+            android:description="@string/srv_desc" />
 
         <receiver android:name=".receiver.BootReceiver">
             <intent-filter>
