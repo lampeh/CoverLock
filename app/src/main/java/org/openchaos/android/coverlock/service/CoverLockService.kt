@@ -23,12 +23,16 @@ class CoverLockService : Service(), SensorEventListener {
 
     companion object Status { var isRunning: Boolean = false }
 
+    private val notificationId = 23
+
     private lateinit var devicePolicyManager: DevicePolicyManager
     private lateinit var sensorManager: SensorManager
     private lateinit var sensor: Sensor
     private lateinit var adminComponentName: ComponentName
     private lateinit var handler: Handler
     private lateinit var prefs: SharedPreferences
+    private lateinit var notificationManager: NotificationManager
+    private lateinit var notification: Notification.Builder
 
     private var telephonyManager: TelephonyManager? = null
     private var powerManager: PowerManager? = null
@@ -40,13 +44,15 @@ class CoverLockService : Service(), SensorEventListener {
 
 
     private fun startSensor() {
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensor.maxDelay)
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensor.minDelay)
         sensorRunning = true
+        notificationManager.notify(notificationId, notification.setSubText(getString(R.string.srv_desc)).build())
     }
 
     private fun stopSensor() {
         sensorManager.unregisterListener(this, sensor)
         sensorRunning = false
+        notificationManager.notify(notificationId, notification.setSubText(null).build())
     }
 
     private fun changeState(interactive: Boolean) {
@@ -92,6 +98,7 @@ class CoverLockService : Service(), SensorEventListener {
             sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)!!
             handler = Handler()
             prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+            notificationManager = getSystemService(Context.NOTIFICATION_SERVICE)!! as NotificationManager
         } catch (e: Exception) {
             Log.e(TAG, "Error in required components", e)
             stopSelf() // TODO: test it
@@ -101,28 +108,19 @@ class CoverLockService : Service(), SensorEventListener {
         // TODO: cleanup
         // TODO: set flags in ContentIntent?
         // TODO: getSystemService null check?
-        startForeground(
-            23,
-            Notification.Builder(
-                    this,
-                    NotificationChannel(TAG, getString(R.string.srv_name), NotificationManager.IMPORTANCE_LOW).let {
-                        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(it)
-                        it.id
-                    })
-                .setSubText(getString(R.string.srv_desc))
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentIntent(
-                    PendingIntent.getActivity(
-                        applicationContext,
-                        0,
-                        Intent(applicationContext, MainActivity::class.java),
-                        0
-                    )
-                )
-                .build()
+        notification = Notification.Builder(this,
+            NotificationChannel(TAG, getString(R.string.srv_name), NotificationManager.IMPORTANCE_LOW).let {
+                (getSystemService(NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(it)
+                it.id
+            })
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentIntent(PendingIntent.getActivity(applicationContext, 0,
+                Intent(applicationContext, MainActivity::class.java), 0)
         )
 
         changeState(powerManager?.isInteractive != false)
+
+        startForeground(notificationId, notification.build())
 
         // start/stop sensor on screen change
         // TODO: it's only useful if either actionLock/Wake is disabled
@@ -140,7 +138,8 @@ class CoverLockService : Service(), SensorEventListener {
         unregisterReceiver(screenStateReceiver)
         stopSensor()
         handler.removeCallbacksAndMessages(null)
-        stopForeground(true)
+        notificationManager.cancelAll()
+        stopForeground(false)
 
         isRunning = false
     }
