@@ -10,9 +10,7 @@ Monitors proximity sensor and locks screen.
 TODO:
 -----
 - Configurable delay and other preferences
-- FULL_WAKE_LOCK is deprecated but ACQUIRE_CAUSES_WAKEUP does not work with PARTIAL_WAKE_LOCK. Ignore, Retry?
 - don't lock if whitelisted apps are in foreground or landscape mode (optional)
-- wake only if locked by this app (optional)
 - new icon
 - license: MIT, GPL, Whatever?
 
