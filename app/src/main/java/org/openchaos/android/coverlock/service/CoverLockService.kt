@@ -21,9 +21,18 @@ import org.openchaos.android.coverlock.receiver.LockAdmin
 class CoverLockService : Service(), SensorEventListener {
     private val TAG = this.javaClass.simpleName
 
-    companion object Status { var isRunning: Boolean = false }
+    companion object {
+        var serviceRunning: Boolean = false
+            private set
 
-    private val notificationId = 23
+        var sensorRunning: Boolean = false
+            private set
+
+        var coverState: Boolean = false
+            private set
+
+        private const val notificationId = 23
+    }
 
     private lateinit var devicePolicyManager: DevicePolicyManager
     private lateinit var sensorManager: SensorManager
@@ -39,23 +48,24 @@ class CoverLockService : Service(), SensorEventListener {
     private var vibrator: Vibrator? = null
 
     private var threshold: Float = Float.NEGATIVE_INFINITY
-    private var coverState: Boolean = false
-    private var sensorRunning: Boolean = false
 
 
     private fun startSensor() {
+        Log.d(TAG, "startSensor()")
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensor.minDelay)
         sensorRunning = true
         notificationManager.notify(notificationId, notification.setSubText(getString(R.string.srv_desc)).build())
     }
 
     private fun stopSensor() {
+        Log.d(TAG, "stopSensor()")
         sensorManager.unregisterListener(this, sensor)
         sensorRunning = false
         notificationManager.notify(notificationId, notification.setSubText(null).build())
     }
 
     private fun changeState(interactive: Boolean) {
+        Log.d(TAG, "changeState($interactive)")
         val shouldRun = prefs.getBoolean(if (interactive) "ActionLock" else "ActionWake", false)
         when {
             shouldRun && !sensorRunning -> startSensor()
@@ -63,14 +73,14 @@ class CoverLockService : Service(), SensorEventListener {
         }
     }
 
-    private val screenStateReceiver = object : BroadcastReceiver() {
+    private val stateChangeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d(TAG, "onReceive()")
+            Log.d(TAG, "onReceive(${intent?.action})")
 
             when (intent?.action) {
                 Intent.ACTION_SCREEN_ON -> changeState(true)
                 Intent.ACTION_SCREEN_OFF -> changeState(false)
-                else -> Log.e(TAG, "unknown intent")
+                else -> Log.w(TAG, "unhandled intent")
             }
         }
     }
@@ -109,9 +119,9 @@ class CoverLockService : Service(), SensorEventListener {
         // TODO: set flags in ContentIntent?
         // TODO: getSystemService null check?
         notification = Notification.Builder(this,
-            NotificationChannel(TAG, getString(R.string.srv_name), NotificationManager.IMPORTANCE_LOW).let {
-                (getSystemService(NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(it)
-                it.id
+            NotificationChannel(TAG, getString(R.string.srv_name), NotificationManager.IMPORTANCE_LOW).let { channel ->
+                (getSystemService(NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(channel)
+                channel.id
             })
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(PendingIntent.getActivity(applicationContext, 0,
@@ -124,24 +134,24 @@ class CoverLockService : Service(), SensorEventListener {
 
         // start/stop sensor on screen change
         // TODO: it's only useful if either actionLock/Wake is disabled
-        registerReceiver(screenStateReceiver, IntentFilter().apply {
+        registerReceiver(stateChangeReceiver, IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
         })
 
-        isRunning = true
+        serviceRunning = true
     }
 
     override fun onDestroy() {
         Log.d(TAG, "onDestroy()")
 
-        unregisterReceiver(screenStateReceiver)
+        unregisterReceiver(stateChangeReceiver)
         stopSensor()
         handler.removeCallbacksAndMessages(null)
         notificationManager.cancelAll()
         stopForeground(false)
 
-        isRunning = false
+        serviceRunning = false
     }
 
     override fun onSensorChanged(event: SensorEvent) {

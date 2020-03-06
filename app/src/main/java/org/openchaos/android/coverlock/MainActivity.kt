@@ -17,7 +17,7 @@ import org.openchaos.android.coverlock.receiver.LockAdmin
 class MainActivity : FragmentActivity() {
     private val TAG = this.javaClass.simpleName
 
-    private companion object Constants {
+    private companion object {
         private const val REQUEST_ADMIN_ACCESS = 23
     }
 
@@ -77,7 +77,7 @@ class MainActivity : FragmentActivity() {
         }
 
         findViewById<CompoundButton>(R.id.btnServiceEnabled).apply {
-            isChecked = CoverLockService.isRunning
+            isChecked = CoverLockService.serviceRunning
             isEnabled = true
         }
     }
