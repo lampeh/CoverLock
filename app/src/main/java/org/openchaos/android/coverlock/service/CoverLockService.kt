@@ -52,7 +52,7 @@ class CoverLockService : Service(), SensorEventListener {
 
     private fun startSensor() {
         Log.d(TAG, "startSensor()")
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensor.minDelay)
+        sensorManager.registerListener(this, sensor, sensor.maxDelay, sensor.maxDelay)
         sensorRunning = true
         notificationManager.notify(notificationId, notification.setSubText(getString(R.string.srv_desc)).build())
     }
@@ -158,6 +158,7 @@ class CoverLockService : Service(), SensorEventListener {
         //Log.d(TAG, "onSensorChanged()") // Log spam on virtual androids
         assert(event.sensor.type == Sensor.TYPE_PROXIMITY)
 
+        val latency = (SystemClock.elapsedRealtimeNanos() - event.timestamp)/1000000f
         val rawValue = event.values[0]
         val newState = (rawValue <= threshold)
 
@@ -167,9 +168,10 @@ class CoverLockService : Service(), SensorEventListener {
         }
 
         coverState = newState
-        Log.d(TAG, (if (coverState) "" else "un") + "covered ($rawValue)")
+        Log.d(TAG, (if (coverState) "" else "un") + "covered (value: $rawValue, latency: ${latency}ms)")
 
         // cancel delayed action
+        // TODO: release debug wake lock
         handler.removeCallbacksAndMessages(null)
 
         // TODO: ignore isInteractive?
@@ -197,9 +199,17 @@ class CoverLockService : Service(), SensorEventListener {
                 }
             }, 2000) // TODO: use LockDelay
         } else if (!coverState && prefs.getBoolean("ActionWake", false)) {
+            // TODO: handler runs late. aquire wake lock first?
+            var wakeLock: PowerManager.WakeLock? = null
+            if (prefs.getBoolean("DebugWake", false)) {
+                wakeLock = powerManager?.newWakeLock(PowerManager.FULL_WAKE_LOCK, TAG)?.apply { acquire(1000) }
+                Log.d(TAG, "wake lock acquired")
+            }
+            vibrate(50)
             handler.postDelayed({
                 if (shouldWake()) {
                     Log.i(TAG, "awake!")
+                    wakeLock?.release()
                     @Suppress("DEPRECATION") // only FULL_WAKE_LOCK works the way we woke
                     powerManager?.newWakeLock(
                         (PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP),
