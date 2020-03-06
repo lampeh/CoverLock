@@ -202,7 +202,7 @@ class CoverLockService : Service(), SensorEventListener {
                     Log.i(TAG, "awake!")
                     @Suppress("DEPRECATION") // only FULL_WAKE_LOCK works the way we woke
                     powerManager?.newWakeLock(
-                        (PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE),
+                        (PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP),
                         TAG
                     )?.acquire(0)
                     vibrate(100)
