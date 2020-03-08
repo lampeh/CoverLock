@@ -57,8 +57,8 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        adminComponentName = ComponentName(this, LockAdmin::class.java)
-        serviceIntent = Intent(this, CoverLockService::class.java)
+        adminComponentName = ComponentName(applicationContext, LockAdmin::class.java)
+        serviceIntent = Intent(applicationContext, CoverLockService::class.java)
 
         setContentView(R.layout.activity_main)
     }

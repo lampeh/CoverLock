@@ -103,7 +103,7 @@ class CoverLockService : Service(), SensorEventListener {
         Log.d(TAG, "onCreate()")
 
         // empty DeviceAdminReceiver
-        adminComponentName = ComponentName(this, LockAdmin::class.java)
+        adminComponentName = ComponentName(applicationContext, LockAdmin::class.java)
 
         // optional components
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager?
