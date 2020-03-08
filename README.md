@@ -11,6 +11,8 @@ TODO:
 -----
 - Configurable delay and other preferences
 - don't lock if whitelisted apps are in foreground or landscape mode (optional)
+- stop sensor while headset plugged in (optional, any?)
+- pause button in notification / quick bar
 - new icon
 - license: MIT, GPL, Whatever?
 
