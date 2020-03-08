@@ -35,13 +35,15 @@ class CoverLockService : Service(), SensorEventListener {
     }
 
     private lateinit var devicePolicyManager: DevicePolicyManager
-    private lateinit var sensorManager: SensorManager
-    private lateinit var sensor: Sensor
     private lateinit var adminComponentName: ComponentName
-    private lateinit var handler: Handler
-    private lateinit var prefs: SharedPreferences
+
+    private lateinit var sensorManager: SensorManager
+    private lateinit var sensorHandler: Handler
+    private lateinit var sensor: Sensor
+
     private lateinit var notificationManager: NotificationManager
     private lateinit var notification: Notification.Builder
+    private lateinit var prefs: SharedPreferences
 
     private var telephonyManager: TelephonyManager? = null
     private var powerManager: PowerManager? = null
@@ -54,7 +56,7 @@ class CoverLockService : Service(), SensorEventListener {
     private fun startSensor() {
         Log.d(TAG, "startSensor()")
         // TODO: decide on "best" values for samplingPeriod and maxReportLatency
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensorHandler)
         sensorRunning = true
         notificationManager.notify(notificationId, notification.setSubText(getString(R.string.srv_desc)).build())
     }
@@ -70,7 +72,7 @@ class CoverLockService : Service(), SensorEventListener {
         Log.d(TAG, "changeState($interactive)")
 
         // cancel delayed action
-        handler.removeCallbacksAndMessages(null)
+        sensorHandler.removeCallbacksAndMessages(null)
         if (wakeLock?.isHeld == true) wakeLock?.release()
 
         val shouldRun = prefs.getBoolean(if (interactive) "ActionLock" else "ActionWake", false)
@@ -108,12 +110,13 @@ class CoverLockService : Service(), SensorEventListener {
         powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager?
         vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator?
 
+        /// TODO: more cleanup required
         // required components
         try {
             devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE)!! as DevicePolicyManager
             sensorManager = getSystemService(Context.SENSOR_SERVICE)!! as SensorManager
             sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)!!
-            handler = Handler()
+            sensorHandler = Handler() // TODO: run sensor in its own thread?
             prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
             notificationManager = getSystemService(Context.NOTIFICATION_SERVICE)!! as NotificationManager
         } catch (e: Exception) {
@@ -153,7 +156,7 @@ class CoverLockService : Service(), SensorEventListener {
 
         unregisterReceiver(stateChangeReceiver)
         stopSensor()
-        handler.removeCallbacksAndMessages(null)
+        sensorHandler.removeCallbacksAndMessages(null)
         notificationManager.cancelAll()
         stopForeground(false)
 
@@ -177,7 +180,7 @@ class CoverLockService : Service(), SensorEventListener {
         Log.d(TAG, (if (coverState) "" else "un") + "covered (value: $rawValue, latency: ${latency}ms)")
 
         // cancel delayed action
-        handler.removeCallbacksAndMessages(null)
+        sensorHandler.removeCallbacksAndMessages(null)
         if (wakeLock?.isHeld == true) wakeLock?.release()
 
         // TODO: ignore isInteractive?
@@ -203,7 +206,7 @@ class CoverLockService : Service(), SensorEventListener {
 
         if (coverState && shouldLock() && prefs.getBoolean("ActionLock", false)) {
             wakeLock?.acquire(3000) // TODO: use LockDelay + ~margin
-            handler.postDelayed({
+            sensorHandler.postDelayed({
                 if (shouldLock()) {
                     Log.i(TAG, "locking")
                     devicePolicyManager.lockNow()
@@ -213,7 +216,7 @@ class CoverLockService : Service(), SensorEventListener {
             }, 2000) // TODO: use LockDelay
         } else if (!coverState && shouldWake() && prefs.getBoolean("ActionWake", false)) {
             wakeLock?.acquire(1000) // TODO: use WakeDelay + ~margin
-            handler.postDelayed({
+            sensorHandler.postDelayed({
                 if (shouldWake()) {
                     Log.i(TAG, "awake!")
                     @Suppress("DEPRECATION") // only FULL_WAKE_LOCK works the way we woke
