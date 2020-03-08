@@ -48,11 +48,13 @@ class CoverLockService : Service(), SensorEventListener {
     private var vibrator: Vibrator? = null
 
     private var threshold: Float = Float.NEGATIVE_INFINITY
+    private var wakeLock: PowerManager.WakeLock? = null
 
 
     private fun startSensor() {
         Log.d(TAG, "startSensor()")
-        sensorManager.registerListener(this, sensor, sensor.maxDelay, sensor.maxDelay)
+        // TODO: decide on "best" values for samplingPeriod and maxReportLatency
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
         sensorRunning = true
         notificationManager.notify(notificationId, notification.setSubText(getString(R.string.srv_desc)).build())
     }
@@ -66,6 +68,11 @@ class CoverLockService : Service(), SensorEventListener {
 
     private fun changeState(interactive: Boolean) {
         Log.d(TAG, "changeState($interactive)")
+
+        // cancel delayed action
+        handler.removeCallbacksAndMessages(null)
+        if (wakeLock?.isHeld == true) wakeLock?.release()
+
         val shouldRun = prefs.getBoolean(if (interactive) "ActionLock" else "ActionWake", false)
         when {
             shouldRun && !sensorRunning -> startSensor()
@@ -116,7 +123,6 @@ class CoverLockService : Service(), SensorEventListener {
         }
 
         // TODO: cleanup
-        // TODO: set flags in ContentIntent?
         // TODO: getSystemService null check?
         notification = Notification.Builder(this,
             NotificationChannel(TAG, getString(R.string.srv_name), NotificationManager.IMPORTANCE_LOW).let { channel ->
@@ -171,8 +177,8 @@ class CoverLockService : Service(), SensorEventListener {
         Log.d(TAG, (if (coverState) "" else "un") + "covered (value: $rawValue, latency: ${latency}ms)")
 
         // cancel delayed action
-        // TODO: release debug wake lock
         handler.removeCallbacksAndMessages(null)
+        if (wakeLock?.isHeld == true) wakeLock?.release()
 
         // TODO: ignore isInteractive?
         // TODO: whitelist apps and modes
@@ -190,33 +196,31 @@ class CoverLockService : Service(), SensorEventListener {
             }
         }
 
-        if (coverState && prefs.getBoolean("ActionLock", false)) {
+        // TODO: only for wake?
+        // TODO: use coroutines, WorkManager, JobScheduler, AlarmManager?
+        // keep CPU awake until handler finishes
+        wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG)
+
+        if (coverState && shouldLock() && prefs.getBoolean("ActionLock", false)) {
+            wakeLock?.acquire(3000) // TODO: use LockDelay + ~margin
             handler.postDelayed({
                 if (shouldLock()) {
                     Log.i(TAG, "locking")
                     devicePolicyManager.lockNow()
                     vibrate(50)
                 }
+                wakeLock?.release()
             }, 2000) // TODO: use LockDelay
-        } else if (!coverState && prefs.getBoolean("ActionWake", false)) {
-            // TODO: handler runs late. aquire wake lock first?
-            var wakeLock: PowerManager.WakeLock? = null
-            if (prefs.getBoolean("DebugWake", false)) {
-                wakeLock = powerManager?.newWakeLock(PowerManager.FULL_WAKE_LOCK, TAG)?.apply { acquire(1000) }
-                Log.d(TAG, "wake lock acquired")
-            }
-            vibrate(50)
+        } else if (!coverState && shouldWake() && prefs.getBoolean("ActionWake", false)) {
+            wakeLock?.acquire(1000) // TODO: use WakeDelay + ~margin
             handler.postDelayed({
                 if (shouldWake()) {
                     Log.i(TAG, "awake!")
-                    wakeLock?.release()
                     @Suppress("DEPRECATION") // only FULL_WAKE_LOCK works the way we woke
-                    powerManager?.newWakeLock(
-                        (PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP),
-                        TAG
-                    )?.acquire(0)
+                    powerManager?.newWakeLock((PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP), TAG)?.acquire(0)
                     vibrate(100)
                 }
+                wakeLock?.release()
             }, 300) // TODO: use WakeDelay
         }
     }

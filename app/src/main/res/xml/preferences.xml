@@ -23,9 +23,4 @@
         app:iconSpaceReserved="false"
         app:key="Vibrate"
         app:title="@string/prefVibrate" />
-
-    <SwitchPreference
-        app:iconSpaceReserved="false"
-        app:key="DebugWake"
-        app:title="Debug: Acquire early wake lock" />
 </PreferenceScreen>
