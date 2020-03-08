@@ -8,7 +8,7 @@ import androidx.preference.PreferenceFragmentCompat
 @Keep // PreferenceFragments referenced in layout XML only
 @Suppress("unused")
 class SettingsFragment : PreferenceFragmentCompat() {
-    private val TAG: String = this.javaClass.simpleName
+    private val TAG = this.javaClass.simpleName
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         Log.d(TAG, "onCreatePreferences()")
