@@ -3,10 +3,12 @@ package org.openchaos.android.coverlock.service
 import android.app.*
 import android.app.admin.DevicePolicyManager
 import android.content.*
+import android.content.res.Configuration
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.AudioManager
 import android.os.*
 import android.telephony.TelephonyManager
 import android.util.Log
@@ -32,6 +34,9 @@ class CoverLockService : Service(), SensorEventListener {
             private set
 
         private const val notificationId = 23
+
+        private const val ACTION_PAUSE = "org.openchaos.android.coverlock.service.CoverLockService.ACTION_PAUSE"
+        private const val ACTION_RESUME = "org.openchaos.android.coverlock.service.CoverLockService.ACTION_RESUME"
     }
 
     private lateinit var devicePolicyManager: DevicePolicyManager
@@ -52,13 +57,26 @@ class CoverLockService : Service(), SensorEventListener {
     private var threshold: Float = Float.NEGATIVE_INFINITY
     private var wakeLock: PowerManager.WakeLock? = null
 
+    private val sensorLock = mutableSetOf<String>()
+
+
+    private fun cancelAction() {
+        Log.d(TAG, "cancelAction()")
+        sensorHandler.removeCallbacksAndMessages(null)
+        if (wakeLock?.isHeld == true) wakeLock?.release()
+    }
 
     private fun startSensor() {
         Log.d(TAG, "startSensor()")
-        // TODO: decide on "best" values for samplingPeriod and maxReportLatency
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensorHandler)
-        sensorRunning = true
-        notificationManager.notify(notificationId, notification.setSubText(getString(R.string.srv_desc)).build())
+
+        if (sensorLock.isEmpty()) {
+            // TODO: decide on "best" values for samplingPeriod and maxReportLatency
+            sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensorHandler)
+            sensorRunning = true
+            notificationManager.notify(notificationId, notification.setSubText(getString(R.string.srv_desc)).build())
+        } else {
+            Log.d(TAG, "Sensor locked out: ${sensorLock.toString()}")
+        }
     }
 
     private fun stopSensor() {
@@ -71,15 +89,38 @@ class CoverLockService : Service(), SensorEventListener {
     private fun changeState(interactive: Boolean) {
         Log.d(TAG, "changeState($interactive)")
 
-        // cancel delayed action
-        sensorHandler.removeCallbacksAndMessages(null)
-        if (wakeLock?.isHeld == true) wakeLock?.release()
+        cancelAction()
 
         val shouldRun = prefs.getBoolean(if (interactive) "ActionLock" else "ActionWake", false)
         when {
             shouldRun && !sensorRunning -> startSensor()
             !shouldRun && sensorRunning -> stopSensor()
         }
+    }
+
+    private fun addLock(lock: String) {
+        Log.d(TAG, "addLock($lock)")
+
+        cancelAction()
+
+        sensorLock.add(lock)
+        stopSensor()
+    }
+
+    private fun removeLock(lock: String) {
+        Log.d(TAG, "removeLock($lock)")
+
+        sensorLock.remove(lock)
+        if (sensorLock.isEmpty()) {
+            changeState(powerManager?.isInteractive != false)
+        }
+    }
+
+    private fun removeAllLocks() {
+        Log.d(TAG, "removeAllLocks()")
+
+        sensorLock.clear()
+        changeState(powerManager?.isInteractive != false)
     }
 
     private val stateChangeReceiver = object : BroadcastReceiver() {
@@ -89,6 +130,24 @@ class CoverLockService : Service(), SensorEventListener {
             when (intent?.action) {
                 Intent.ACTION_SCREEN_ON -> changeState(true)
                 Intent.ACTION_SCREEN_OFF -> changeState(false)
+                Intent.ACTION_CONFIGURATION_CHANGED -> {
+                    if (prefs.getBoolean("PauseLandscape", false)) {
+                        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                            addLock("landscape")
+                        } else {
+                            removeLock("landscape")
+                        }
+                    }
+                }
+                AudioManager.ACTION_HEADSET_PLUG -> {
+                    if (prefs.getBoolean("PauseHeadset", false) && intent.hasExtra("state")) {
+                        val lockName = intent.getStringExtra("name") ?: "headset"
+                        when {
+                            intent.getIntExtra("state", 0) == 1 -> addLock(lockName)
+                            intent.getIntExtra("state", 0) == 0 -> removeLock(lockName)
+                        }
+                    }
+                }
                 else -> Log.w(TAG, "unhandled intent")
             }
         }
@@ -146,6 +205,8 @@ class CoverLockService : Service(), SensorEventListener {
         registerReceiver(stateChangeReceiver, IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_CONFIGURATION_CHANGED)
+            addAction(AudioManager.ACTION_HEADSET_PLUG)
         })
 
         serviceRunning = true
@@ -156,7 +217,7 @@ class CoverLockService : Service(), SensorEventListener {
 
         unregisterReceiver(stateChangeReceiver)
         stopSensor()
-        sensorHandler.removeCallbacksAndMessages(null)
+        cancelAction()
         notificationManager.cancelAll()
         stopForeground(false)
 
@@ -179,9 +240,7 @@ class CoverLockService : Service(), SensorEventListener {
         coverState = newState
         Log.d(TAG, (if (coverState) "" else "un") + "covered (value: $rawValue, latency: ${latency}ms)")
 
-        // cancel delayed action
-        sensorHandler.removeCallbacksAndMessages(null)
-        if (wakeLock?.isHeld == true) wakeLock?.release()
+        cancelAction()
 
         // TODO: ignore isInteractive?
         // TODO: whitelist apps and modes
