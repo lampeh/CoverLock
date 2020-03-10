@@ -14,8 +14,13 @@
     <string name="prefActionWake">Wake when uncovered</string>
     <string name="prefWakeDelay">Wake delay</string>
     <string name="prefWakeDistance">Wake distance</string>
+    <string name="prefPauseHeadset">Pause while headset connected</string>
+    <string name="prefPauseLandscape">Pause in landscape orientation</string>
     <string name="prefStartOnBoot">Start service on boot</string>
     <string name="prefVibrate">Vibrate</string>
+
+    <string name="btnPause">Pause</string>
+    <string name="btnResume">Resume</string>
 
     <string name="adminEnabled">CoverLock is now a device admin</string>
     <string name="adminError">Device admin request failed</string>

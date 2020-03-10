@@ -13,6 +13,18 @@
         app:title="@string/prefActionWake" />
 
     <SwitchPreference
+        app:defaultValue="false"
+        app:iconSpaceReserved="false"
+        app:key="PauseHeadset"
+        app:title="@string/prefPauseHeadset" />
+
+    <SwitchPreference
+        app:defaultValue="false"
+        app:iconSpaceReserved="false"
+        app:key="PauseLandscape"
+        app:title="@string/prefPauseLandscape" />
+
+    <SwitchPreference
         app:defaultValue="true"
         app:iconSpaceReserved="false"
         app:key="StartOnBoot"
