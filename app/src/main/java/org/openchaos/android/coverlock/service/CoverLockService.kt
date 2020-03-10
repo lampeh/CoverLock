@@ -116,7 +116,7 @@ class CoverLockService : Service(), SensorEventListener {
             devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE)!! as DevicePolicyManager
             sensorManager = getSystemService(Context.SENSOR_SERVICE)!! as SensorManager
             sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)!!
-            sensorHandler = Handler() // TODO: run sensor in its own thread?
+            sensorHandler = Handler(mainLooper) // TODO: run sensor in its own thread?
             prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
             notificationManager = getSystemService(Context.NOTIFICATION_SERVICE)!! as NotificationManager
         } catch (e: Exception) {
