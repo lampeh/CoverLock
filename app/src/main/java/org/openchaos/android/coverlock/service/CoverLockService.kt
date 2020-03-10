@@ -64,6 +64,7 @@ class CoverLockService : Service(), SensorEventListener {
         Log.d(TAG, "cancelAction()")
 
         // TODO: multithreaded sensor handler could post delayed action between here and unregister - does it matter?
+        // cancel delayed locking/waking action, release wake lock if held
         sensorHandler.removeCallbacksAndMessages(null)
         if (wakeLock?.isHeld == true) wakeLock?.release()
     }

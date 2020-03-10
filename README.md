@@ -9,10 +9,9 @@ Monitors proximity sensor and locks screen.
 
 TODO:
 -----
-- Configurable delay and other preferences
-- don't lock if whitelisted apps are in foreground or landscape mode (optional)
-- stop sensor while headset plugged in (optional, any?)
-- pause button in notification / quick bar
+- configurable delay and other preferences
+- don't lock if whitelisted apps are in foreground or camera in use (optional, maybe unreliable)
+- pause button in notification / quick tile
 - new icon
 - license: MIT, GPL, Whatever?
 
