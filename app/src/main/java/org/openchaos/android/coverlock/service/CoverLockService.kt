@@ -62,6 +62,8 @@ class CoverLockService : Service(), SensorEventListener {
 
     private fun cancelAction() {
         Log.d(TAG, "cancelAction()")
+
+        // TODO: multithreaded sensor handler could post delayed action between here and unregister - does it matter?
         sensorHandler.removeCallbacksAndMessages(null)
         if (wakeLock?.isHeld == true) wakeLock?.release()
     }
@@ -89,22 +91,22 @@ class CoverLockService : Service(), SensorEventListener {
     private fun changeState(interactive: Boolean?) {
         Log.d(TAG, "changeState($interactive)")
 
-        cancelAction()
-
         val shouldRun = prefs.getBoolean(if (interactive != false) "ActionLock" else "ActionWake", false)
         when {
             shouldRun && !sensorRunning -> startSensor()
             !shouldRun && sensorRunning -> stopSensor()
         }
+
+        cancelAction()
     }
 
     private fun addLock(lock: String) {
         Log.d(TAG, "addLock($lock)")
 
-        cancelAction()
-
         sensorLock.add(lock)
         stopSensor()
+
+        cancelAction()
     }
 
     private fun removeLock(lock: String) {
@@ -126,7 +128,7 @@ class CoverLockService : Service(), SensorEventListener {
     }
 
     private fun changeLock(lock: String, locked: Boolean) {
-        Log.d(TAG, "changeLock($lock, $locked)")
+        //Log.d(TAG, "changeLock($lock, $locked)")
 
         when (locked) {
             true -> addLock(lock)
@@ -150,7 +152,7 @@ class CoverLockService : Service(), SensorEventListener {
                 AudioManager.ACTION_HEADSET_PLUG -> {
                     if (prefs.getBoolean("PauseHeadset", false)) {
                         changeLock(intent.getStringExtra("name") ?: "headset",
-                        (intent.getIntExtra("state", 0) == 1) ?: false)
+                            (intent.getIntExtra("state", 0) == 1))
                     }
                 }
                 else -> Log.w(TAG, "unhandled intent")
@@ -205,8 +207,7 @@ class CoverLockService : Service(), SensorEventListener {
 
         startForeground(notificationId, notification.build())
 
-        // start/stop sensor on screen change
-        // TODO: it's only useful if either actionLock/Wake is disabled
+        // TODO: register only the actions required by preferences, update on change
         registerReceiver(stateChangeReceiver, IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
