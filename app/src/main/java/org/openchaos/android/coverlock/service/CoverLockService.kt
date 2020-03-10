@@ -75,7 +75,7 @@ class CoverLockService : Service(), SensorEventListener {
             sensorRunning = true
             notificationManager.notify(notificationId, notification.setSubText(getString(R.string.srv_desc)).build())
         } else {
-            Log.d(TAG, "Sensor locked out: ${sensorLock.toString()}")
+            Log.d(TAG, "sensor locked out: ${sensorLock.toString()}")
         }
     }
 
@@ -86,12 +86,12 @@ class CoverLockService : Service(), SensorEventListener {
         notificationManager.notify(notificationId, notification.setSubText(null).build())
     }
 
-    private fun changeState(interactive: Boolean) {
+    private fun changeState(interactive: Boolean?) {
         Log.d(TAG, "changeState($interactive)")
 
         cancelAction()
 
-        val shouldRun = prefs.getBoolean(if (interactive) "ActionLock" else "ActionWake", false)
+        val shouldRun = prefs.getBoolean(if (interactive != false) "ActionLock" else "ActionWake", false)
         when {
             shouldRun && !sensorRunning -> startSensor()
             !shouldRun && sensorRunning -> stopSensor()
@@ -112,7 +112,9 @@ class CoverLockService : Service(), SensorEventListener {
 
         sensorLock.remove(lock)
         if (sensorLock.isEmpty()) {
-            changeState(powerManager?.isInteractive != false)
+            changeState(powerManager?.isInteractive)
+        } else {
+            Log.d(TAG, "locks remaining: ${sensorLock.toString()}")
         }
     }
 
@@ -120,7 +122,16 @@ class CoverLockService : Service(), SensorEventListener {
         Log.d(TAG, "removeAllLocks()")
 
         sensorLock.clear()
-        changeState(powerManager?.isInteractive != false)
+        changeState(powerManager?.isInteractive)
+    }
+
+    private fun changeLock(lock: String, locked: Boolean) {
+        Log.d(TAG, "changeLock($lock, $locked)")
+
+        when (locked) {
+            true -> addLock(lock)
+            false -> removeLock(lock)
+        }
     }
 
     private val stateChangeReceiver = object : BroadcastReceiver() {
@@ -132,20 +143,14 @@ class CoverLockService : Service(), SensorEventListener {
                 Intent.ACTION_SCREEN_OFF -> changeState(false)
                 Intent.ACTION_CONFIGURATION_CHANGED -> {
                     if (prefs.getBoolean("PauseLandscape", false)) {
-                        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                            addLock("landscape")
-                        } else {
-                            removeLock("landscape")
-                        }
+                        changeLock("landscape",
+                            (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE))
                     }
                 }
                 AudioManager.ACTION_HEADSET_PLUG -> {
-                    if (prefs.getBoolean("PauseHeadset", false) && intent.hasExtra("state")) {
-                        val lockName = intent.getStringExtra("name") ?: "headset"
-                        when {
-                            intent.getIntExtra("state", 0) == 1 -> addLock(lockName)
-                            intent.getIntExtra("state", 0) == 0 -> removeLock(lockName)
-                        }
+                    if (prefs.getBoolean("PauseHeadset", false)) {
+                        changeLock(intent.getStringExtra("name") ?: "headset",
+                        (intent.getIntExtra("state", 0) == 1) ?: false)
                     }
                 }
                 else -> Log.w(TAG, "unhandled intent")
@@ -196,7 +201,7 @@ class CoverLockService : Service(), SensorEventListener {
                 Intent(applicationContext, MainActivity::class.java), 0)
         )
 
-        changeState(powerManager?.isInteractive != false)
+        changeState(powerManager?.isInteractive)
 
         startForeground(notificationId, notification.build())
 
@@ -225,7 +230,7 @@ class CoverLockService : Service(), SensorEventListener {
     }
 
     override fun onSensorChanged(event: SensorEvent) {
-        //Log.d(TAG, "onSensorChanged()") // Log spam on virtual androids
+        Log.d(TAG, "onSensorChanged()") // Log spam on virtual androids
         assert(event.sensor.type == Sensor.TYPE_PROXIMITY)
 
         val latency = (SystemClock.elapsedRealtimeNanos() - event.timestamp)/1000000f
