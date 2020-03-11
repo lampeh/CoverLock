@@ -34,9 +34,6 @@ class CoverLockService : Service(), SensorEventListener {
             private set
 
         private const val notificationId = 23
-
-        private const val ACTION_PAUSE = "org.openchaos.android.coverlock.service.CoverLockService.ACTION_PAUSE"
-        private const val ACTION_RESUME = "org.openchaos.android.coverlock.service.CoverLockService.ACTION_RESUME"
     }
 
     private lateinit var devicePolicyManager: DevicePolicyManager
@@ -128,9 +125,8 @@ class CoverLockService : Service(), SensorEventListener {
         changeState(powerManager?.isInteractive)
     }
 
-    private fun changeLock(lock: String, locked: Boolean) {
-        //Log.d(TAG, "changeLock($lock, $locked)")
-
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun changeLock(lock: String, locked: Boolean) {
         when (locked) {
             true -> addLock(lock)
             false -> removeLock(lock)
@@ -250,7 +246,7 @@ class CoverLockService : Service(), SensorEventListener {
         cancelAction()
 
         // TODO: ignore isInteractive?
-        // TODO: whitelist apps and modes
+        // TODO: receive telephony state in stateChangeReceiver?
         fun shouldLock(): Boolean = (
             devicePolicyManager.isAdminActive(adminComponentName) &&
             powerManager?.isInteractive != false &&  // if true || null
