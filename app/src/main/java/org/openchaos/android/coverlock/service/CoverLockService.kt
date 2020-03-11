@@ -190,10 +190,9 @@ class CoverLockService : Service(), SensorEventListener {
         }
 
         // TODO: cleanup
-        // TODO: getSystemService null check?
         notification = Notification.Builder(this,
             NotificationChannel(TAG, getString(R.string.srv_name), NotificationManager.IMPORTANCE_LOW).let { channel ->
-                (getSystemService(NOTIFICATION_SERVICE) as NotificationManager?)?.createNotificationChannel(channel)
+                notificationManager.createNotificationChannel(channel)
                 channel.id
             })
             .setSmallIcon(R.mipmap.ic_launcher)
