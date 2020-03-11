@@ -148,6 +148,7 @@ class CoverLockService : Service(), SensorEventListener {
                 }
                 AudioManager.ACTION_HEADSET_PLUG -> {
                     if (prefs.getBoolean("PauseHeadset", false)) {
+                        // TODO: prefix headset name if set?
                         changeLock(intent.getStringExtra("name") ?: "headset",
                             (intent.getIntExtra("state", 0) == 1))
                     }
