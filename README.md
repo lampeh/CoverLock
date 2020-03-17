@@ -28,3 +28,8 @@ Limitations:
   - camera and others
   - only in fullscreen activity?
   - register OnSystemUiVisibilityChange on notification view?
+
+
+Settings:
+---------
+![Screenshot](screenshot1.png)
