@@ -35,4 +35,17 @@
         app:iconSpaceReserved="false"
         app:key="Vibrate"
         app:title="@string/prefVibrate" />
+
+    <!-- TODO: use SeekbarPreference -->
+    <EditTextPreference
+        app:defaultValue="2"
+        app:iconSpaceReserved="false"
+        app:key="LockDelay"
+        app:title="@string/prefLockDelay" />
+
+    <EditTextPreference
+        app:defaultValue="0.3"
+        app:iconSpaceReserved="false"
+        app:key="WakeDelay"
+        app:title="@string/prefWakeDelay" />
 </PreferenceScreen>

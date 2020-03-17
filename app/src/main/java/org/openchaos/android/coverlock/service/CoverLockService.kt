@@ -265,9 +265,11 @@ class CoverLockService : Service(), SensorEventListener {
         // TODO: use coroutines, WorkManager, JobScheduler, AlarmManager?
         // keep CPU awake until handler finishes
         wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG)
+        val delayMillis = ((prefs.getString(if (coverState) "LockDelay" else "WakeDelay", null)?.toDoubleOrNull() ?: 0.0) * 1000).toLong()
 
+        // -> covered. prepare to lock
         if (coverState && shouldLock() && prefs.getBoolean("ActionLock", false)) {
-            wakeLock?.acquire(3000) // TODO: use LockDelay + ~margin
+            wakeLock?.acquire(delayMillis + 500) // TODO: explain timeout margin magic constant
             sensorHandler.postDelayed({
                 if (shouldLock()) {
                     Log.i(TAG, "locking")
@@ -275,9 +277,11 @@ class CoverLockService : Service(), SensorEventListener {
                     vibrate(50)
                 }
                 wakeLock?.release()
-            }, 2000) // TODO: use LockDelay
+            }, delayMillis)
+
+        // -> uncovered. prepare to wake device
         } else if (!coverState && shouldWake() && prefs.getBoolean("ActionWake", false)) {
-            wakeLock?.acquire(1000) // TODO: use WakeDelay + ~margin
+            wakeLock?.acquire(delayMillis + 500)
             sensorHandler.postDelayed({
                 if (shouldWake()) {
                     Log.i(TAG, "awake!")
@@ -286,7 +290,7 @@ class CoverLockService : Service(), SensorEventListener {
                     vibrate(100)
                 }
                 wakeLock?.release()
-            }, 300) // TODO: use WakeDelay
+            }, delayMillis)
         }
     }
 
