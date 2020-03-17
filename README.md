@@ -9,9 +9,9 @@ Monitors proximity sensor and locks screen.
 
 TODO:
 -----
-- configurable delay and other preferences
-- don't lock if whitelisted apps are in foreground or camera in use (optional, maybe unreliable)
 - pause button in notification / quick tile
+- don't lock if whitelisted apps are in foreground or camera in use (optional, maybe unreliable)
+- use slider to set delay
 - new icon
 - license: MIT, GPL, Whatever?
 
@@ -24,3 +24,7 @@ Limitations:
   - Trust Agent API not available
   - any other "lock **now**" method available?
   - see also: EMM DPC OCD
+- "Pause in landscape orientation" doesn't work with apps that handle orientation change
+  - camera and others
+  - only in fullscreen activity?
+  - register OnSystemUiVisibilityChange on notification view?
