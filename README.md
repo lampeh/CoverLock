@@ -11,9 +11,8 @@ TODO:
 -----
 - pause button in notification / quick tile
 - don't lock if whitelisted apps are in foreground or camera in use (optional, maybe unreliable)
-- use slider to set delay
+- use slider to set delay and distance
 - new icon
-- license: MIT, GPL, Whatever?
 
 
 Limitations:
