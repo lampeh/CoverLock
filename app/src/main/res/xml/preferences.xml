@@ -44,7 +44,7 @@
         app:title="@string/prefLockDelay" />
 
     <EditTextPreference
-        app:defaultValue="0.3"
+        app:defaultValue="0.2"
         app:iconSpaceReserved="false"
         app:key="WakeDelay"
         app:title="@string/prefWakeDelay" />
