@@ -85,13 +85,12 @@ class MainActivity : FragmentActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         Log.d(TAG, "onActivityResult($requestCode, $resultCode")
 
-        if (requestCode != REQUEST_ADMIN_ACCESS)
-            return
-
-        if (resultCode == RESULT_OK) {
-            Toast.makeText(this, R.string.adminEnabled, Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(this, R.string.adminError, Toast.LENGTH_SHORT).show()
+        if (requestCode == REQUEST_ADMIN_ACCESS) {
+            if (resultCode == RESULT_OK) {
+                Toast.makeText(this, R.string.adminEnabled, Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, R.string.adminError, Toast.LENGTH_SHORT).show()
+            }
         }
 
         return super.onActivityResult(requestCode, resultCode, data)
