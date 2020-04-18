@@ -233,7 +233,7 @@ class CoverLockService : Service(), SensorEventListener {
 
         val latency = (SystemClock.elapsedRealtimeNanos() - event.timestamp)/1000000f
         val rawValue = event.values[0]
-        val newState = (rawValue <= threshold)
+        val newState = (rawValue < threshold)
 
         // nothing changed
         if (newState == coverState) {
