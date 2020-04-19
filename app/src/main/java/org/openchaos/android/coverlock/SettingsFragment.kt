@@ -17,10 +17,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
         setPreferencesFromResource(R.xml.preferences, rootKey)
 
         listOf("LockDelay", "WakeDelay").forEach {
-            findPreference<EditTextPreference>(it)?.apply {
-                setOnBindEditTextListener { editText ->
-                    editText.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-                }
+            findPreference<EditTextPreference>(it)?.setOnBindEditTextListener { editText ->
+                editText.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
             }
         }
     }
