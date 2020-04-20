@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.preference.PreferenceManager
 import org.openchaos.android.coverlock.service.CoverLockService
 
+
 class BootReceiver : BroadcastReceiver() {
     private val TAG = this.javaClass.simpleName
 

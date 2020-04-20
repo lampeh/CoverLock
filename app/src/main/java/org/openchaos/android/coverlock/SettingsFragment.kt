@@ -7,6 +7,7 @@ import androidx.annotation.Keep
 import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceFragmentCompat
 
+
 @Keep // PreferenceFragments referenced in layout XML only. TODO: disables R8 minification, apparently
 @Suppress("unused")
 class SettingsFragment : PreferenceFragmentCompat() {
