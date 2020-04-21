@@ -228,7 +228,7 @@ class CoverLockService : Service(), SensorEventListener {
 
         unregisterReceiver(stateChangeReceiver)
         stopSensor()
-        notificationManager.cancelAll()
+        notificationManager.cancel(notificationId)
         stopForeground(false)
 
         serviceRunning = false
