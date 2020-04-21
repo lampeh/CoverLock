@@ -79,18 +79,9 @@ class CoverLockService : Service(), SensorEventListener {
         Log.d(TAG, "stopSensor()")
 
         sensorManager.unregisterListener(this, sensor)
+        cancelAction()
         sensorRunning = false
         notificationManager.notify(notificationId, notification.setSubText(null).build())
-    }
-
-    // TODO: refactorial obstruction. both service and sensor listener need to cancel delayed tasks
-    private fun cancelAction() {
-        Log.d(TAG, "cancelAction()")
-
-        // TODO: multithreaded sensor handler could post delayed action between here and unregister - does it matter?
-        // cancel delayed locking/waking action, release wake lock if held
-        sensorHandler.removeCallbacksAndMessages(null)
-        if (wakeLock?.isHeld == true) wakeLock?.release()
     }
 
     private fun changeState(interactive: Boolean?) {
@@ -101,8 +92,6 @@ class CoverLockService : Service(), SensorEventListener {
             shouldRun && !sensorRunning -> startSensor()
             !shouldRun && sensorRunning -> stopSensor()
         }
-
-        cancelAction()
     }
 
     private fun addLock(lock: String) {
@@ -110,8 +99,6 @@ class CoverLockService : Service(), SensorEventListener {
 
         sensorLock.add(lock)
         stopSensor()
-
-        cancelAction()
     }
 
     private fun removeLock(lock: String) {
@@ -143,6 +130,7 @@ class CoverLockService : Service(), SensorEventListener {
         override fun onReceive(context: Context?, intent: Intent?) {
             Log.d(TAG, "onReceive(${intent?.action})")
 
+            // TODO: changing preferences does not reset sensor locks
             when (intent?.action) {
                 Intent.ACTION_SCREEN_ON -> changeState(true)
                 Intent.ACTION_SCREEN_OFF -> changeState(false)
@@ -235,7 +223,6 @@ class CoverLockService : Service(), SensorEventListener {
 
         unregisterReceiver(stateChangeReceiver)
         stopSensor()
-        cancelAction()
         notificationManager.cancelAll()
         stopForeground(false)
 
@@ -246,6 +233,14 @@ class CoverLockService : Service(), SensorEventListener {
 
 
     // region sensor event handler
+
+    private fun cancelAction() {
+        Log.d(TAG, "cancelAction()")
+
+        // cancel delayed locking/waking action, release wake lock if held
+        sensorHandler.removeCallbacksAndMessages(null)
+        if (wakeLock?.isHeld == true) wakeLock?.release()
+    }
 
     private inline fun shouldLock(): Boolean = (
         devicePolicyManager.isAdminActive(adminComponentName) &&
