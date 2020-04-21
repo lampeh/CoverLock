@@ -200,6 +200,11 @@ class CoverLockService : Service(), SensorEventListener {
         // foreground services can be started at boot and receive sensor updates during sleep
         startForeground(notificationId, notification.build())
 
+        // lock sensor if service started in landscape orientation
+        if ((prefs.getBoolean("PauseLandscape", false)) && (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)) {
+            changeLock("landscape", true)
+        }
+
         // assume initial screen state
         changeState(powerManager?.isInteractive)
 
