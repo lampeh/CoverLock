@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package org.openchaos.android.coverlock.service
 
 import android.app.*
@@ -19,6 +21,8 @@ import org.openchaos.android.coverlock.receiver.LockAdmin
 
 
 // TODO: maybe cache preference values, reload service on change
+// TODO: disentangle & extract sensor listener class. maybe state change listener, too
+
 
 class CoverLockService : Service(), SensorEventListener {
     private val TAG = this.javaClass.simpleName
@@ -57,6 +61,29 @@ class CoverLockService : Service(), SensorEventListener {
     private val sensorLock = mutableSetOf<String>()
 
 
+    private fun startSensor() {
+        Log.d(TAG, "startSensor()")
+
+        if (sensorLock.isNotEmpty()) {
+            Log.d(TAG, "sensor locked out: ${sensorLock.toString()}")
+            return
+        }
+
+        // TODO: decide on "best" values for samplingPeriod and maxReportLatency
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensorHandler)
+        sensorRunning = true
+        notificationManager.notify(notificationId, notification.setSubText(getString(R.string.srv_desc)).build())
+    }
+
+    private fun stopSensor() {
+        Log.d(TAG, "stopSensor()")
+
+        sensorManager.unregisterListener(this, sensor)
+        sensorRunning = false
+        notificationManager.notify(notificationId, notification.setSubText(null).build())
+    }
+
+    // TODO: refactorial obstruction. both service and sensor listener need to cancel delayed tasks
     private fun cancelAction() {
         Log.d(TAG, "cancelAction()")
 
@@ -64,26 +91,6 @@ class CoverLockService : Service(), SensorEventListener {
         // cancel delayed locking/waking action, release wake lock if held
         sensorHandler.removeCallbacksAndMessages(null)
         if (wakeLock?.isHeld == true) wakeLock?.release()
-    }
-
-    private fun startSensor() {
-        Log.d(TAG, "startSensor()")
-
-        if (sensorLock.isEmpty()) {
-            // TODO: decide on "best" values for samplingPeriod and maxReportLatency
-            sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensorHandler)
-            sensorRunning = true
-            notificationManager.notify(notificationId, notification.setSubText(getString(R.string.srv_desc)).build())
-        } else {
-            Log.d(TAG, "sensor locked out: ${sensorLock.toString()}")
-        }
-    }
-
-    private fun stopSensor() {
-        Log.d(TAG, "stopSensor()")
-        sensorManager.unregisterListener(this, sensor)
-        sensorRunning = false
-        notificationManager.notify(notificationId, notification.setSubText(null).build())
     }
 
     private fun changeState(interactive: Boolean?) {
@@ -118,15 +125,14 @@ class CoverLockService : Service(), SensorEventListener {
         }
     }
 
-    private fun removeAllLocks() {
-        Log.d(TAG, "removeAllLocks()")
+    private fun clearLocks() {
+        Log.d(TAG, "clearLocks()")
 
         sensorLock.clear()
         changeState(powerManager?.isInteractive)
     }
 
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun changeLock(lock: String, locked: Boolean) {
+    private fun changeLock(lock: String, locked: Boolean) {
         when (locked) {
             true -> addLock(lock)
             false -> removeLock(lock)
@@ -148,8 +154,7 @@ class CoverLockService : Service(), SensorEventListener {
                 }
                 AudioManager.ACTION_HEADSET_PLUG -> {
                     if (prefs.getBoolean("PauseHeadset", false)) {
-                        // TODO: prefix headset name if set?
-                        changeLock(intent.getStringExtra("name") ?: "headset",
+                        changeLock("headset-${intent.getStringExtra("name") ?: "default"}",
                             (intent.getIntExtra("state", 0) == 1))
                     }
                 }
@@ -158,6 +163,9 @@ class CoverLockService : Service(), SensorEventListener {
         }
     }
 
+
+    // region service
+
     override fun onBind(intent: Intent): IBinder? {
         Log.e(TAG, "onBind() should not be called")
         return null
@@ -165,8 +173,9 @@ class CoverLockService : Service(), SensorEventListener {
 
     override fun onCreate() {
         Log.d(TAG, "onCreate()")
+        assert(!serviceRunning)
 
-        // empty DeviceAdminReceiver
+        // device admin auth token
         adminComponentName = ComponentName(applicationContext, LockAdmin::class.java)
 
         // optional components
@@ -189,7 +198,7 @@ class CoverLockService : Service(), SensorEventListener {
             return
         }
 
-        // TODO: cleanup
+        // prepare proto-notification
         notification = Notification.Builder(this,
             NotificationChannel(TAG, getString(R.string.srv_name), NotificationManager.IMPORTANCE_LOW).let { channel ->
                 notificationManager.createNotificationChannel(channel)
@@ -198,11 +207,13 @@ class CoverLockService : Service(), SensorEventListener {
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(PendingIntent.getActivity(applicationContext, 0,
                 Intent(applicationContext, MainActivity::class.java), 0)
-        )
+            )
 
-        changeState(powerManager?.isInteractive)
-
+        // foreground services can be started at boot and receive sensor updates during sleep
         startForeground(notificationId, notification.build())
+
+        // assume initial screen state
+        changeState(powerManager?.isInteractive)
 
         // TODO: register only the actions required by preferences, update on change
         registerReceiver(stateChangeReceiver, IntentFilter().apply {
@@ -218,6 +229,10 @@ class CoverLockService : Service(), SensorEventListener {
     override fun onDestroy() {
         Log.d(TAG, "onDestroy()")
 
+        if (!serviceRunning) {
+            return
+        }
+
         unregisterReceiver(stateChangeReceiver)
         stopSensor()
         cancelAction()
@@ -225,6 +240,25 @@ class CoverLockService : Service(), SensorEventListener {
         stopForeground(false)
 
         serviceRunning = false
+    }
+
+    // endregion
+
+
+    // region sensor event handler
+
+    private inline fun shouldLock(): Boolean = (
+        devicePolicyManager.isAdminActive(adminComponentName) &&
+        powerManager?.isInteractive != false &&  // if true || null
+        telephonyManager?.callState != TelephonyManager.CALL_STATE_OFFHOOK)
+
+    private inline fun shouldWake(): Boolean = (
+        powerManager?.isInteractive != true)
+
+    private inline fun vibrate(milliseconds: Long) {
+        if (prefs.getBoolean("Vibrate", false)) {
+            vibrator?.vibrate(VibrationEffect.createOneShot(milliseconds, VibrationEffect.DEFAULT_AMPLITUDE))
+        }
     }
 
     override fun onSensorChanged(event: SensorEvent) {
@@ -245,31 +279,14 @@ class CoverLockService : Service(), SensorEventListener {
 
         cancelAction()
 
-        // TODO: ignore isInteractive?
-        // TODO: receive telephony state in stateChangeReceiver?
-        fun shouldLock(): Boolean = (
-            devicePolicyManager.isAdminActive(adminComponentName) &&
-            powerManager?.isInteractive != false &&  // if true || null
-            telephonyManager?.callState != TelephonyManager.CALL_STATE_OFFHOOK)
+        val delayMillis = ((prefs.getString(if (coverState) "LockDelay" else "WakeDelay", null)?.toDoubleOrNull() ?: 0.0) * 1000).toLong()
 
-        fun shouldWake(): Boolean = (
-            powerManager?.isInteractive != true)
-
-        fun vibrate(milliseconds: Long) {
-            if (prefs.getBoolean("Vibrate", false)) {
-                vibrator?.vibrate(VibrationEffect.createOneShot(milliseconds, VibrationEffect.DEFAULT_AMPLITUDE))
-            }
-        }
-
-        // TODO: only for wake?
-        // TODO: use coroutines, WorkManager, JobScheduler, AlarmManager?
         // keep CPU awake until handler finishes
         wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG)
-        val delayMillis = ((prefs.getString(if (coverState) "LockDelay" else "WakeDelay", null)?.toDoubleOrNull() ?: 0.0) * 1000).toLong()
 
         // -> covered. prepare to lock
         if (coverState && shouldLock() && prefs.getBoolean("ActionLock", false)) {
-            wakeLock?.acquire(delayMillis + 500) // TODO: explain timeout margin magic constant
+            wakeLock?.acquire(delayMillis + 500) // set wake lock timeout to delay + margin
             sensorHandler.postDelayed({
                 if (shouldLock()) {
                     Log.i(TAG, "locking")
@@ -310,4 +327,6 @@ class CoverLockService : Service(), SensorEventListener {
         threshold = sensor.maximumRange / 2 // TODO: use LockDistance/WakeDistance
         Log.d(TAG, "maxRange = ${sensor.maximumRange}, threshold = $threshold")
     }
+
+    // endregion
 }
