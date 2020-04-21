@@ -64,24 +64,32 @@ class CoverLockService : Service(), SensorEventListener {
     private fun startSensor() {
         Log.d(TAG, "startSensor()")
 
+        if (sensorRunning) {
+            return
+        }
+
         if (sensorLock.isNotEmpty()) {
             Log.d(TAG, "sensor locked out: ${sensorLock.toString()}")
             return
         }
 
         // TODO: decide on "best" values for samplingPeriod and maxReportLatency
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensorHandler)
-        sensorRunning = true
+        sensorRunning = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensorHandler)
         notificationManager.notify(notificationId, notification.setSubText(getString(R.string.srv_desc)).build())
     }
 
     private fun stopSensor() {
         Log.d(TAG, "stopSensor()")
 
+        if (!sensorRunning) {
+            return
+        }
+
         sensorManager.unregisterListener(this, sensor)
         cancelAction()
+
         sensorRunning = false
-        notificationManager.notify(notificationId, notification.setSubText(null).build())
+        notificationManager.notify(notificationId, notification.setSubText(null).build()) // TODO: use icon to display sensor state
     }
 
     private fun changeState(interactive: Boolean?) {
