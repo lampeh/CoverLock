@@ -3,13 +3,11 @@ package org.openchaos.android.coverlock
 import android.os.Bundle
 import android.text.InputType
 import android.util.Log
-import androidx.annotation.Keep
 import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceFragmentCompat
 
 
-@Keep // PreferenceFragments referenced in layout XML only. TODO: disables R8 minification, apparently
-@Suppress("unused")
+@Suppress("unused") // PreferenceFragments referenced in layout XML only
 class SettingsFragment : PreferenceFragmentCompat() {
     private val TAG = this.javaClass.simpleName
 
