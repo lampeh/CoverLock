@@ -16,7 +16,7 @@ import androidx.preference.PreferenceManager
 import org.openchaos.android.coverlock.receiver.LockAdmin
 
 
-class ProximityLocker(_context: Context, _looper: Looper = Looper.getMainLooper()) : SensorEventListener {
+class ProximityLocker(_context: Context, _handler: Handler = Handler(Looper.getMainLooper())) : SensorEventListener {
     private val TAG = this.javaClass.simpleName
 
     private val context = _context
@@ -25,7 +25,7 @@ class ProximityLocker(_context: Context, _looper: Looper = Looper.getMainLooper(
 
     private val devicePolicyManager = context.getSystemService(Context.DEVICE_POLICY_SERVICE)!! as DevicePolicyManager
 
-    private val sensorHandler = Handler(_looper)
+    private val sensorHandler = _handler
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE)!! as SensorManager
     private val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)!!
 
@@ -39,11 +39,15 @@ class ProximityLocker(_context: Context, _looper: Looper = Looper.getMainLooper(
 
 
     fun start(): Boolean {
+        Log.d(TAG, "start()")
+
         // TODO: decide on "best" values for samplingPeriod and maxReportLatency
         return sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, sensorHandler)
     }
 
     fun stop() {
+        Log.d(TAG, "stop()")
+
         sensorManager.unregisterListener(this, sensor)
         cancelAction()
     }
