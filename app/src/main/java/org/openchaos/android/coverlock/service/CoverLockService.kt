@@ -49,7 +49,7 @@ class CoverLockService : Service() {
         }
 
         if (sensorLock.isNotEmpty()) {
-            Log.d(TAG, "sensor locked out: ${sensorLock.toString()}")
+            Log.d(TAG, "sensor locked out: $sensorLock")
             return
         }
 
@@ -93,7 +93,7 @@ class CoverLockService : Service() {
         if (sensorLock.isEmpty()) {
             changeState(powerManager?.isInteractive)
         } else {
-            Log.d(TAG, "locks remaining: ${sensorLock.toString()}")
+            Log.d(TAG, "locks remaining: $sensorLock")
         }
     }
 
@@ -136,9 +136,6 @@ class CoverLockService : Service() {
         }
     }
 
-
-    // region service
-
     override fun onBind(intent: Intent): IBinder? {
         Log.e(TAG, "onBind() should not be called")
         return null
@@ -155,7 +152,7 @@ class CoverLockService : Service() {
         // required components
         try {
             prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-            notificationManager = getSystemService(Context.NOTIFICATION_SERVICE)!! as NotificationManager
+            notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             proximityLocker = ProximityLocker(applicationContext)
         } catch (e: Exception) {
             Log.e(TAG, "Error in required components", e)
@@ -210,6 +207,4 @@ class CoverLockService : Service() {
 
         serviceRunning = false
     }
-
-    // endregion
 }
