@@ -256,8 +256,8 @@ class CoverLockService : Service(), SensorEventListener {
     }
 
     private inline fun shouldLock(): Boolean = (
-        devicePolicyManager.isAdminActive(adminComponentName) &&
         powerManager?.isInteractive != false &&  // if true || null
+        devicePolicyManager.isAdminActive(adminComponentName) &&
         telephonyManager?.callState != TelephonyManager.CALL_STATE_OFFHOOK)
 
     private inline fun shouldWake(): Boolean = (
@@ -287,14 +287,14 @@ class CoverLockService : Service(), SensorEventListener {
 
         cancelAction()
 
-        val delayMillis = ((prefs.getString(if (coverState) "LockDelay" else "WakeDelay", null)?.toDoubleOrNull() ?: 0.0) * 1000).toLong()
+        val delayMillis = ((prefs.getString(if (coverState) "LockDelay" else "WakeDelay", null)?.toDoubleOrNull() ?: 0.0) * 1000.0).toLong()
 
         // keep CPU awake until handler finishes
         wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG)
 
         // -> covered. prepare to lock
         if (coverState && shouldLock() && prefs.getBoolean("ActionLock", false)) {
-            wakeLock?.acquire(delayMillis + 500) // set wake lock timeout to delay + margin
+            wakeLock?.acquire(delayMillis + 500L) // set wake lock timeout to delay + margin
             sensorHandler.postDelayed({
                 if (shouldLock()) {
                     Log.i(TAG, "locking")
@@ -306,7 +306,7 @@ class CoverLockService : Service(), SensorEventListener {
 
         // -> uncovered. prepare to wake device
         } else if (!coverState && shouldWake() && prefs.getBoolean("ActionWake", false)) {
-            wakeLock?.acquire(delayMillis + 500)
+            wakeLock?.acquire(delayMillis + 500L)
             sensorHandler.postDelayed({
                 if (shouldWake()) {
                     Log.i(TAG, "awake!")
@@ -332,7 +332,7 @@ class CoverLockService : Service(), SensorEventListener {
             }
         }
 
-        threshold = sensor.maximumRange / 2 // TODO: use LockDistance/WakeDistance
+        threshold = sensor.maximumRange / 2f // TODO: use LockDistance/WakeDistance
         Log.d(TAG, "maxRange = ${sensor.maximumRange}, threshold = $threshold")
     }
 
