@@ -1,15 +1,19 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package org.openchaos.android.coverlock.service
 
 import android.app.*
+import android.app.admin.DevicePolicyManager
 import android.content.*
 import android.content.res.Configuration
 import android.media.AudioManager
-import android.os.IBinder
-import android.os.PowerManager
+import android.os.*
+import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.preference.PreferenceManager
 import org.openchaos.android.coverlock.MainActivity
 import org.openchaos.android.coverlock.R
+import org.openchaos.android.coverlock.receiver.LockAdmin
 
 
 // TODO: maybe cache preference values, reload service on change
@@ -27,7 +31,17 @@ class CoverLockService : Service() {
             private set
 
         private const val notificationId = 23
+
+        // TODO: enum?
+        const val SENSOR_OPEN = 0
+        const val SENSOR_CLOSED = 1
+        const val LOCK_ADD = 2
+        const val LOCK_REMOVE = 3
     }
+
+    private val devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE)!! as DevicePolicyManager
+    private val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator?
+    private val telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager?
 
     private lateinit var notificationManager: NotificationManager
     private lateinit var notification: Notification.Builder
@@ -38,7 +52,7 @@ class CoverLockService : Service() {
 
     private val sensorLock = mutableSetOf<String>()
 
-    private lateinit var proximityLocker: ProximityLocker
+    private lateinit var proximitySensor: ProximitySensor
 
 
     private fun startSensor() {
@@ -53,7 +67,7 @@ class CoverLockService : Service() {
             return
         }
 
-        sensorRunning = proximityLocker.start()
+        sensorRunning = proximitySensor.start()
         notificationManager.notify(notificationId, notification.setSubText(getString(R.string.srv_desc)).build())
     }
 
@@ -64,7 +78,7 @@ class CoverLockService : Service() {
             return
         }
 
-        proximityLocker.stop()
+        proximitySensor.stop()
         sensorRunning = false
         notificationManager.notify(notificationId, notification.setSubText(null).build()) // TODO: use icon to display sensor state
     }
@@ -136,6 +150,9 @@ class CoverLockService : Service() {
         }
     }
 
+
+    // region service
+
     override fun onBind(intent: Intent): IBinder? {
         Log.e(TAG, "onBind() should not be called")
         return null
@@ -145,18 +162,15 @@ class CoverLockService : Service() {
         Log.d(TAG, "onCreate()")
         assert(!serviceRunning)
 
-        // optional components
-        powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager?
-
-        /// TODO: more cleanup required
         // required components
         try {
+            proximitySensor = ProximitySensor(applicationContext, sensorHandler)
             prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
             notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            proximityLocker = ProximityLocker(applicationContext)
+            powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager?
         } catch (e: Exception) {
             Log.e(TAG, "Error in required components", e)
-            stopSelf() // TODO: test it
+            stopSelf()
             return
         }
 
@@ -207,4 +221,83 @@ class CoverLockService : Service() {
 
         serviceRunning = false
     }
+
+    // endregion
+
+
+    // region sensor handler
+
+    // TODO: lazy is fancy but complex. use lateinit?
+    private val wakeLock: PowerManager.WakeLock? by lazy {
+        powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG)
+    }
+
+    // messages from sensors and state change receivers
+    private val sensorHandler = Handler() {
+        Log.d(TAG, "sensorHandler: $it")
+
+        when (it.what) {
+            SENSOR_CLOSED -> sensorChanged(true)
+            SENSOR_OPEN -> sensorChanged(false)
+            LOCK_ADD -> addLock(it.obj as String)
+            LOCK_REMOVE -> removeLock(it.obj as String)
+        }
+
+        true
+    }
+
+    // executes delayed runnables
+    private val deviceHandler = Handler()
+
+    private inline fun shouldLock(): Boolean = (
+        devicePolicyManager.isAdminActive(ComponentName(this, LockAdmin::class.java)) &&
+        powerManager?.isInteractive != false &&  // if true || null
+        telephonyManager?.callState != TelephonyManager.CALL_STATE_OFFHOOK)
+
+    private inline fun shouldWake(): Boolean = (
+        powerManager?.isInteractive != true)
+
+    private inline fun vibrate(milliseconds: Long) {
+        if (prefs.getBoolean("Vibrate", false)) {
+            vibrator?.vibrate(VibrationEffect.createOneShot(milliseconds, VibrationEffect.DEFAULT_AMPLITUDE))
+        }
+    }
+
+    private val lockAction = Runnable {
+        if (shouldLock()) {
+            Log.i(TAG, "locking")
+            devicePolicyManager.lockNow()
+            vibrate(50)
+        }
+        wakeLock?.release()
+    }
+
+    private val wakeAction = Runnable {
+        if (shouldWake()) {
+            Log.i(TAG, "awake!")
+            @Suppress("DEPRECATION") // only FULL_WAKE_LOCK works the way we woke
+            powerManager?.newWakeLock((PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP), TAG)?.acquire(0)
+            vibrate(100)
+        }
+        wakeLock?.release()
+    }
+
+    private fun sensorChanged(covered: Boolean) {
+        val delayMillis = ((prefs.getString(if (covered) "LockDelay" else "WakeDelay", null)?.toDoubleOrNull() ?: 0.0) * 1000.0).toLong()
+
+        if ((covered && shouldLock() && prefs.getBoolean("ActionLock", false) ||
+                    (!covered && shouldWake() && prefs.getBoolean("ActionWake", false)))) {
+            wakeLock?.apply {
+                if (isHeld) release() // release current lock if held // TODO: is that necessary?
+                acquire(delayMillis + 500) // set wake lock timeout to delay + margin
+            }
+
+            deviceHandler.apply {
+                removeCallbacksAndMessages(null) // cancel queued action
+                postDelayed(if (covered) lockAction else wakeAction, delayMillis)
+            }
+        }
+    }
+
+    // endregion
 }
