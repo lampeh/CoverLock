@@ -21,7 +21,7 @@ jobs:
       # TODO: include as gradle property / in build version?
       # TODO: check result is not empty
       - name: Extract runner image version
-        run: echo "${ImageOS}-${ImageVersion}" >"${GITHUB_WORKSPACE}/Github_ImageVersion.txt"
+        run: echo "::set-env image-info::${ImageOS}_${ImageVersion}"
 
       - name: Grant permission to update SDK dir
         run: sudo chown "${USER}.${USER}" "${ANDROID_SDK_ROOT}" "${ANDROID_SDK_ROOT}"/*
@@ -40,7 +40,7 @@ jobs:
           cache-name: cache-sdk-upper
         with:
           path: ${{ runner.temp }}/sdk-overlay/upper
-          key: ${{ env.cache-name }}-${{ hashFiles('Github_ImageVersion.txt') }}-${{ hashFiles('app/build.gradle') }}
+          key: ${{ env.cache-name }}-${{ env.image-info }}-${{ hashFiles('app/build.gradle') }}
 
       - name: Mount SDK cache overlay
         env:
