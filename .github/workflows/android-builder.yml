@@ -1,3 +1,6 @@
+env:
+  app-name: CoverLock
+
 name: Android Builder
 
 on: [push]
@@ -21,7 +24,7 @@ jobs:
       # TODO: include as gradle property / in build version?
       # TODO: check result is not empty
       - name: Extract runner image version
-        run: echo "::set-env name=image-info::${ImageOS}_${ImageVersion}"
+        run: echo "::set-env name=image-name::${ImageOS}_${ImageVersion}"
 
       - name: Grant permission to update SDK dir
         run: sudo chown "${USER}.${USER}" "${ANDROID_SDK_ROOT}" "${ANDROID_SDK_ROOT}"/*
@@ -40,7 +43,7 @@ jobs:
           cache-name: cache-sdk-upper
         with:
           path: ${{ runner.temp }}/sdk-overlay/upper
-          key: ${{ env.cache-name }}-${{ env.image-info }}-${{ hashFiles('app/build.gradle') }}
+          key: ${{ env.cache-name }}-${{ env.image-name }}-${{ hashFiles('app/build.gradle') }}
 
       - name: Mount SDK cache overlay
         env:
@@ -85,19 +88,19 @@ jobs:
       - name: Archive APKs
         uses: actions/upload-artifact@v2
         with:
-          name: CoverLock-apk
+          name: ${{ env.app-name }}-apk
           path: app/build/outputs/apk/
 
       - name: Append R8 Mappings
         uses: actions/upload-artifact@v2
         with:
-          name: CoverLock-apk
+          name: ${{ env.app-name }}-apk
           path: app/build/outputs/mapping/
 
       - name: Archive Reports
         uses: actions/upload-artifact@v2
         with:
-          name: CoverLock-reports
+          name: ${{ env.app-name }}-reports
           path: app/build/reports/
 
       - name: Unmount SDK cache overlay
