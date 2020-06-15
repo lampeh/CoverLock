@@ -169,7 +169,6 @@ class CoverLockService : Service(), SensorEventListener {
 
     override fun onCreate() {
         Log.d(TAG, "onCreate()")
-        assert(!serviceRunning)
 
         // device admin auth token
         adminComponentName = ComponentName(applicationContext, LockAdmin::class.java)
@@ -271,7 +270,6 @@ class CoverLockService : Service(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent) {
         Log.d(TAG, "onSensorChanged()") // Log spam on virtual androids
-        assert(event.sensor.type == Sensor.TYPE_PROXIMITY)
 
         val latency = (SystemClock.elapsedRealtimeNanos() - event.timestamp)/1000000f
         val rawValue = event.values[0]
@@ -321,7 +319,6 @@ class CoverLockService : Service(), SensorEventListener {
 
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
         Log.d(TAG, "onAccuracyChanged($accuracy)")
-        assert(sensor.type == Sensor.TYPE_PROXIMITY)
 
         when (accuracy) {
             SensorManager.SENSOR_STATUS_NO_CONTACT,
