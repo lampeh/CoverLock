@@ -7,7 +7,7 @@ plugins {
 
 android {
     compileSdkVersion 29
-    buildToolsVersion '29.0.3'
+    buildToolsVersion '30.0.0'
     defaultConfig {
         applicationId "org.openchaos.android.coverlock"
         minSdkVersion 26
@@ -33,5 +33,5 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_version}"
     implementation 'androidx.core:core-ktx:1.3.0'
     implementation 'androidx.preference:preference:1.1.1'
-    implementation 'androidx.fragment:fragment:1.2.4'
+    implementation 'androidx.fragment:fragment:1.2.5'
 }
