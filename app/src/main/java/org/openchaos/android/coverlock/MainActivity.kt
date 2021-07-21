@@ -9,6 +9,7 @@ import android.util.Log
 import android.view.View
 import android.widget.CompoundButton
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.FragmentActivity
 import org.openchaos.android.coverlock.service.CoverLockService
@@ -18,33 +19,18 @@ import org.openchaos.android.coverlock.receiver.LockAdmin
 class MainActivity : FragmentActivity() {
     private val TAG = this.javaClass.simpleName
 
-    private companion object {
-        private const val REQUEST_ADMIN_ACCESS = 23
-    }
-
     private lateinit var devicePolicyManager: DevicePolicyManager
     private lateinit var adminComponentName: ComponentName
     private lateinit var serviceIntent: Intent
-
+    private lateinit var adminRequest: ActivityResultLauncher<Intent>
 
     fun toggleAdmin(button: View) {
         Log.d(TAG, "toggleAdmin()")
 
         if ((button as CompoundButton).isChecked) {
             Log.d(TAG, "requesting device admin access")
-/*
-            startActivityForResult(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
-                putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponentName)
-            }, REQUEST_ADMIN_ACCESS)
- */
 
-            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-                if (it.resultCode == RESULT_OK) {
-                    Toast.makeText(this, R.string.adminEnabled, Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, R.string.adminError, Toast.LENGTH_SHORT).show()
-                }
-            }.launch(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+            adminRequest.launch(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
                 putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponentName)
             });
 
@@ -74,6 +60,14 @@ class MainActivity : FragmentActivity() {
         adminComponentName = ComponentName(applicationContext, LockAdmin::class.java)
         serviceIntent = Intent(applicationContext, CoverLockService::class.java)
 
+        adminRequest = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            if (it.resultCode == RESULT_OK) {
+                Toast.makeText(this, R.string.adminEnabled, Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, R.string.adminError, Toast.LENGTH_SHORT).show()
+            }
+        }
+
         setContentView(R.layout.activity_main)
     }
 
@@ -95,20 +89,4 @@ class MainActivity : FragmentActivity() {
             isEnabled = true
         }
     }
-
-/*
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        Log.d(TAG, "onActivityResult($requestCode, $resultCode")
-
-        if (requestCode == REQUEST_ADMIN_ACCESS) {
-            if (resultCode == RESULT_OK) {
-                Toast.makeText(this, R.string.adminEnabled, Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, R.string.adminError, Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        return super.onActivityResult(requestCode, resultCode, data)
-    }
- */
 }
