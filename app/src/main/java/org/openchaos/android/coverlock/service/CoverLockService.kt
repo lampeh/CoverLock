@@ -69,7 +69,7 @@ class CoverLockService : Service(), SensorEventListener {
         }
 
         if (sensorLock.isNotEmpty()) {
-            Log.d(TAG, "sensor locked out: ${sensorLock.toString()}")
+            Log.d(TAG, "sensor locked out: $sensorLock")
             return
         }
 
@@ -116,7 +116,7 @@ class CoverLockService : Service(), SensorEventListener {
         if (sensorLock.isEmpty()) {
             changeState(powerManager?.isInteractive)
         } else {
-            Log.d(TAG, "locks remaining: ${sensorLock.toString()}")
+            Log.d(TAG, "locks remaining: $sensorLock")
         }
     }
 
