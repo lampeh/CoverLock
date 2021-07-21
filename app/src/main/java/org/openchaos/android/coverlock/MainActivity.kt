@@ -9,6 +9,7 @@ import android.util.Log
 import android.view.View
 import android.widget.CompoundButton
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.FragmentActivity
 import org.openchaos.android.coverlock.service.CoverLockService
 import org.openchaos.android.coverlock.receiver.LockAdmin
@@ -31,9 +32,22 @@ class MainActivity : FragmentActivity() {
 
         if ((button as CompoundButton).isChecked) {
             Log.d(TAG, "requesting device admin access")
+/*
             startActivityForResult(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
                 putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponentName)
             }, REQUEST_ADMIN_ACCESS)
+ */
+
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+                if (it.resultCode == RESULT_OK) {
+                    Toast.makeText(this, R.string.adminEnabled, Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, R.string.adminError, Toast.LENGTH_SHORT).show()
+                }
+            }.launch(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponentName)
+            });
+
         } else {
             Log.d(TAG, "removing device admin access")
             devicePolicyManager.removeActiveAdmin(adminComponentName)
@@ -82,6 +96,7 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+/*
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         Log.d(TAG, "onActivityResult($requestCode, $resultCode")
 
@@ -95,4 +110,5 @@ class MainActivity : FragmentActivity() {
 
         return super.onActivityResult(requestCode, resultCode, data)
     }
+ */
 }
