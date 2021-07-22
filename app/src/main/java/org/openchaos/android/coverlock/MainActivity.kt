@@ -22,7 +22,15 @@ class MainActivity : FragmentActivity() {
     private lateinit var devicePolicyManager: DevicePolicyManager
     private lateinit var adminComponentName: ComponentName
     private lateinit var serviceIntent: Intent
-    private lateinit var adminRequest: ActivityResultLauncher<Intent>
+
+    private val adminRequest = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (it.resultCode == RESULT_OK) {
+            Toast.makeText(this, R.string.adminEnabled, Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, R.string.adminError, Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
     fun toggleAdmin(button: View) {
         Log.d(TAG, "toggleAdmin()")
@@ -59,14 +67,6 @@ class MainActivity : FragmentActivity() {
         devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         adminComponentName = ComponentName(applicationContext, LockAdmin::class.java)
         serviceIntent = Intent(applicationContext, CoverLockService::class.java)
-
-        adminRequest = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            if (it.resultCode == RESULT_OK) {
-                Toast.makeText(this, R.string.adminEnabled, Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, R.string.adminError, Toast.LENGTH_SHORT).show()
-            }
-        }
 
         setContentView(R.layout.activity_main)
     }
